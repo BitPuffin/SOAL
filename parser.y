@@ -17,7 +17,8 @@ unit : declaration | unit declaration ;
 declaration : const_var_declaration ;
 const_var_declaration : '(' DEF IDENTIFIER IDENTIFIER literal ')' ;
 literal: num_literal ;
-num_literal : NUM_LITERAL ;
+num_literal : NUM_LITERAL  { return make_numlit($1);
+                     ;
 
 %%
 
