@@ -1,3 +1,5 @@
 #!/bin/sh
 
-cc *.c
+yacc -d parser.y
+lex lex.l
+cc -g *.c
