@@ -1,4 +1,4 @@
-#lang racket/base
+#lang racket
 
 ;(define cmdline-parser
 ;    (command-line
@@ -6,19 +6,15 @@
 ;
 ;    #:args ()]
 
-(require racket/list)
-
 (define argv (current-command-line-arguments))
 
 (define (path->syntax file-name)
   (parameterize ([port-count-lines-enabled #t])
-    (with-input-from-file file-name
-      (λ ()
-        (define prt (open-input-file file-name))
-        (for/list ([l (in-port (λ (p)
-                                 (read-syntax file-name p))
+    (call-with-input-file* file-name
+      (λ (prt)
+        (for/list ([def (in-port (curry read-syntax file-name)
                                prt)])
-          l)))))
+          def)))))
 
 (define ast (path->syntax (vector-ref argv 0)))
 
