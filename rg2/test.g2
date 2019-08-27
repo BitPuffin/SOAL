@@ -1,0 +1,5 @@
+(def a 1)
+(def b 2)
+
+(pub def main (proc ()
+	(+ a b)))
