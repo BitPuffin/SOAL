@@ -55,5 +55,9 @@
          ast))
 
 (define my-definitions (extract-module-definitions ast))
+(define my-module-identifiers (map first my-definitions))
+
+(let ([dup (check-duplicates my-module-identifiers #:default #f)])
+  (assert (not dup) (format "the identifier ~a is defined twice" dup)))
 
 
