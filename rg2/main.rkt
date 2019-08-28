@@ -25,16 +25,10 @@
   (for ([def (in-list ast)])
     (define dat (syntax->datum def))
     (assert (match dat
-              [(list 'def (? symbol? _) _) #t]
-              [(list 'pub 'def (? symbol? _) _) #t]
-              [(list 'var (? symbol? _) _) #t]
-              [(list 'var (? symbol? _) type _) #t]
-              [(list 'pub 'var (? symbol? _) _) #t]
-              [(list 'pub 'var (? symbol? _) type _) #t]
-              [(list 'readonly (? symbol? _) _) #t]
-              [(list 'readonly (? symbol? _) type _) #t]
-              [(list 'pub 'readonly (? symbol? _) _) #t]
-              [(list 'pub 'readonly (? symbol? _) type _) #t]
+              [(list (or 'def 'var 'readonly) (? symbol? name) _) #t]
+              [(list (or 'def 'var 'readonly) (? symbol? name) type _) #t]
+              [(list 'pub (or 'def 'var 'readonly) (? symbol? name) _) #t]
+              [(list 'pub (or 'def 'var 'readonly) (? symbol? name) type _) #t]
               [_ #f])
             (format "unexpected item at module top-level ~s" def))))
 
