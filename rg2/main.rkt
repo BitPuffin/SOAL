@@ -13,19 +13,31 @@
     (call-with-input-file* file-name
       (λ (prt)
         (for/list ([def (in-port (curry read-syntax file-name)
-                               prt)])
+                                 prt)])
           def)))))
 
 (define ast (path->syntax (vector-ref argv 0)))
 
-(define (verify-module-has-only-definitions ast)
-  (for ([def (in-list ast)])
-    (define def-datum (syntax->datum def))
-    (unless (and (list? def-datum)
-                 (or (eq? (first def-datum) 'def)
-                     (and (eq? (first def-datum) 'pub)
-                          (eq? (second def-datum) 'def))))
-      (error (format "unexpected: ~s" def)))))
+(define (assert b msg)
+  (when (not b) (error msg)))
 
-(verify-module-has-only-definitions ast)
+(define (assert-clean-toplevel ast)
+  (for ([def (in-list ast)])
+    (define dat (syntax->datum def))
+    (assert (match dat
+              [(list 'def (? symbol? _) _) #t]
+              [(list 'pub 'def (? symbol? _) _) #t]
+              [(list 'var (? symbol? _) _) #t]
+              [(list 'var (? symbol? _) type _) #t]
+              [(list 'pub 'var (? symbol? _) _) #t]
+              [(list 'pub 'var (? symbol? _) type _) #t]
+              [(list 'readonly (? symbol? _) _) #t]
+              [(list 'readonly (? symbol? _) type _) #t]
+              [(list 'pub 'readonly (? symbol? _) _) #t]
+              [(list 'pub 'readonly (? symbol? _) type _) #t]
+              [_ #f])
+            (format "unexpected item at module top-level ~s" def))))
+
+(assert-clean-toplevel ast)
+
 
