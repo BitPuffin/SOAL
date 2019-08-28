@@ -34,4 +34,26 @@
 
 (assert-clean-toplevel ast)
 
+(define (extract-module-definitions ast)
+  (map (lambda (def)
+         (define els (let* ([v (syntax-e def)]
+                            [v (if (eq? 'pub (syntax->datum (first v)))
+                                   (rest v)
+                                   v)]
+                            [v (rest v)]) ; pop off def/var/readonly
+                       v))
+         (define ident (syntax->datum (first els)))
+         (define type-inferred? (= 2 (length els)))
+         (define body
+           (if type-inferred?
+               (second els)
+               (first els)))
+         (define type (if type-inferred?
+                          '__compiler-inferred
+                          (syntax->datum (first els))))
+         (list ident body type))
+         ast))
+
+(define my-definitions (extract-module-definitions ast))
+
 
