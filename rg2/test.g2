@@ -1,5 +1,6 @@
 (def a 1)
 (def b 2)
 
-(pub def main (proc ()
+(pub def main (proc int ()
 	(+ a b)))
+
