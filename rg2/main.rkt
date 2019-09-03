@@ -51,7 +51,7 @@
          (define type (if type-inferred?
                           '__compiler-inferred
                           (syntax->datum (first els))))
-         (list ident body type))
+         (list ident def))
        ast))
 
 (define my-definitions (extract-module-definitions ast))
@@ -60,4 +60,48 @@
 (let ([dup (check-duplicates my-module-identifiers #:default #f)])
   (assert (not dup) (format "the identifier ~a is defined twice" dup)))
 
+(assert (member 'main my-module-identifiers) "No main procedure defined in module")
 
+(define main-def (second (assoc 'main my-definitions)))
+
+(define (pub? stx)
+  (define ls (syntax->datum stx))
+  (eq? (first ls) 'pub))
+
+(assert (pub? main-def) "main has to be public") 
+
+(define def->value (compose last syntax-e))
+
+(define (proc? stx)
+  (define ls (syntax->datum stx))
+  (and (list? ls)
+       (eq? 'proc (first ls))))
+
+(define main-value (def->value main-def))
+
+(assert (proc? main-value)
+        (format "main must be a procedure\n~a\n^^^ not a valid value for main"
+                (syntax->datum main-value)))
+
+(define proc-return-type (compose second
+                                  syntax->datum))
+
+(let ([return-type (proc-return-type main-value)])
+  (assert (or (eq? return-type 'int)
+              (eq? return-type 'void))
+          (format "expected return type to be int or void, '~a' is not acceptable"
+                  return-type)))
+
+(define proc-args (compose third
+                           syntax->datum))
+
+(assert (empty? (proc-args main-value))
+        "Expected main to not take any arguments")
+
+(define proc-body (compose fourth syntax-e))
+
+(define (validate-body body)
+  (define unwrapped (syntax-e body))
+  (displayln "todo: make sure the body is ok mate"))
+
+(validate-body (proc-body main-value))
