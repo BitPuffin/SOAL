@@ -35,7 +35,7 @@
 (assert-clean-toplevel ast)
 
 (define (extract-module-definitions ast)
-  (map (lambda (def)
+  (map (λ (def)
          (define els (let* ([v (syntax-e def)]
                             [v (if (eq? 'pub (syntax->datum (first v)))
                                    (rest v)
@@ -52,7 +52,7 @@
                           '__compiler-inferred
                           (syntax->datum (first els))))
          (list ident body type))
-         ast))
+       ast))
 
 (define my-definitions (extract-module-definitions ast))
 (define my-module-identifiers (map first my-definitions))
