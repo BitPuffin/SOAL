@@ -16,7 +16,8 @@
                                  prt)])
           def)))))
 
-(define ast (path->syntax (vector-ref argv 0)))
+;(define ast (path->syntax (vector-ref argv 0)))
+(define ast (path->syntax "test.g2"))
 
 (define (assert b msg)
   (when (not b) (error msg)))
@@ -34,6 +35,10 @@
 
 (assert-clean-toplevel ast)
 
+;; TODO, this can probably be generalized to extract scope definitions
+;; or something like that
+;; maybe make extract scope constants, since those can be referenced
+;; in any order
 (define (extract-module-definitions ast)
   (map (λ (def)
          (define els (let* ([v (syntax-e def)]
@@ -55,7 +60,10 @@
        ast))
 
 (define my-definitions (extract-module-definitions ast))
-(define my-module-identifiers (map first my-definitions))
+
+(define builtin-identifiers (list '+ '- '* '/))
+(define my-module-identifiers
+  (append builtin-identifiers (map first my-definitions)))
 
 (let ([dup (check-duplicates my-module-identifiers #:default #f)])
   (assert (not dup) (format "the identifier ~a is defined twice" dup)))
@@ -100,8 +108,33 @@
 
 (define proc-body (compose fourth syntax-e))
 
+(define keywords '(var def readonly proc))
+
+;; TODO: this one doesn't pass when you define a variable in the body
 (define (validate-body body)
-  (define unwrapped (syntax-e body))
-  (displayln "todo: make sure the body is ok mate"))
+  (define identifier? (λ (p) (and (not (member p keywords))
+                                  (symbol? p))))
+  (define syms (filter identifier? (flatten (syntax->datum body))))
+  (for ([s (in-list syms)])
+    (assert (member s my-module-identifiers)
+            (format "unknown symbol: ~a" s))))
 
 (validate-body (proc-body main-value))
+
+(define (get-proc-dependencies body)
+  (define identifier? (λ (p) (and (not (member p keywords))
+                                  (symbol? p))))
+  (define (not-builtin? p)
+    (not (member p builtin-identifiers)))
+  (filter (λ (p) (and (not-builtin? p) (identifier? p)))
+          (flatten (fourth (syntax->datum body)))))
+
+(define deps (get-proc-dependencies main-value))
+
+(define (emit-dependencies deps)
+  (for ([dep (in-list deps)])
+    (define def (assoc dep my-definitions))
+    (displayln def))
+  (displayln "TODO: emit them my boy"))
+
+(emit-dependencies deps)
