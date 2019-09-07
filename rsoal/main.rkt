@@ -108,7 +108,8 @@
 (assert (empty? (proc-args main-value))
         "Expected main to not take any arguments")
 
-(define proc-body (compose fourth syntax-e))
+(define (proc-body p)
+  (drop (syntax->datum p) 3))
 
 (define keywords '(var def readonly proc))
 
@@ -116,7 +117,7 @@
 (define (validate-body body)
   (define identifier? (λ (p) (and (not (member p keywords))
                                   (symbol? p))))
-  (define syms (filter identifier? (flatten (syntax->datum body))))
+  (define syms (filter identifier? (flatten body)))
   (for ([s (in-list syms)])
     (assert (member s my-module-identifiers)
             (format "unknown symbol: ~a" s))))
@@ -154,9 +155,45 @@
                           qbe-typ
                           (last val)))])))
 
+(define main-output (open-output-file "main.qbe" #:exists 'replace))
+
+(define stdout (current-output-port))
+(current-output-port main-output)
+
 (emit-dependencies deps)
 
 (define (emit-proc proc)
   (displayln proc))
 
-(emit-proc main-value)
+(define form-cmd first)
+
+(define (emit-add form)
+  (assert (= 3 (length form)) "invalid add form")
+  (displayln (format "%l =w loadw $~a" (second form)))
+  (displayln (format "%r =w loadw $~a" (third form)))
+  (displayln "%n =w add %l, %r"))
+
+(define primitives (list (list '+ emit-add)))
+
+(define (emit-proc-body proc)
+  (define bdy (proc-body proc))
+  (for ([expr (in-list bdy)])
+    (define cmd (form-cmd expr))
+    (define emitter (second (assoc cmd primitives))) ; I barely know her!
+    (emitter expr)))
+
+(define (emit-main main)
+  (displayln "export function w $main() {")
+  (displayln "@start")
+  (emit-proc-body main)
+  (displayln "ret")
+  (displayln "}"))
+
+(emit-main main-value)
+
+(close-output-port main-output)
+(current-output-port stdout)
+
+(system "qbe -o asm.s main.qbe")
+(system "cc -o main asm.s")
+
