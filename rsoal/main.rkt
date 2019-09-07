@@ -146,7 +146,7 @@
     ;(define val (second def))
     (define typ (decl-type val))
     (define qbe-typ (match typ
-                      ('int 'l)))
+                      ('int 'w)))
     (cond
       [(and (def? val) (not (proc? val))) 
        (displayln (format "data $~a = { ~a ~a }"
@@ -155,3 +155,8 @@
                           (last val)))])))
 
 (emit-dependencies deps)
+
+(define (emit-proc proc)
+  (displayln proc))
+
+(emit-proc main-value)
