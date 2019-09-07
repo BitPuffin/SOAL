@@ -1,5 +1,5 @@
-(def a 1)
-(def b 2)
+(def a int 1)
+(def b int 2)
 
 (pub def main (proc int ()
 	(+ a b)))

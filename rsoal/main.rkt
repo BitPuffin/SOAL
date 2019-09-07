@@ -17,7 +17,7 @@
           def)))))
 
 ;(define ast (path->syntax (vector-ref argv 0)))
-(define ast (path->syntax "test.g2"))
+(define ast (path->syntax "test.soal"))
 
 (define (assert b msg)
   (when (not b) (error msg)))
@@ -81,7 +81,9 @@
 (define def->value (compose last syntax-e))
 
 (define (proc? stx)
-  (define ls (syntax->datum stx))
+  (define ls (if (list? stx)
+                 stx
+                 (syntax->datum stx)))
   (and (list? ls)
        (eq? 'proc (first ls))))
 
@@ -131,10 +133,25 @@
 
 (define deps (get-proc-dependencies main-value))
 
+(define (def? lst)
+  (and (list? lst) (eq? 'def (car lst))))
+
+(define decl-type third)
+
 (define (emit-dependencies deps)
   (for ([dep (in-list deps)])
     (define def (assoc dep my-definitions))
-    (displayln def))
-  (displayln "TODO: emit them my boy"))
+    (define val-stx (second def))
+    (define val (syntax->datum val-stx))
+    ;(define val (second def))
+    (define typ (decl-type val))
+    (define qbe-typ (match typ
+                      ('int 'l)))
+    (cond
+      [(and (def? val) (not (proc? val))) 
+       (displayln (format "data $~a = { ~a ~a }"
+                          dep
+                          qbe-typ
+                          (last val)))])))
 
 (emit-dependencies deps)
