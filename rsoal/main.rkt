@@ -97,9 +97,9 @@
                                   syntax->datum))
 
 (let ([return-type (proc-return-type main-value)])
-  (assert (or (eq? return-type 'int)
+  (assert (or ;(eq? return-type 'int)
               (eq? return-type 'void))
-          (format "expected return type to be int or void, '~a' is not acceptable"
+          (format "expected return type to be void, '~a' is not acceptable"
                   return-type)))
 
 (define proc-args (compose third
