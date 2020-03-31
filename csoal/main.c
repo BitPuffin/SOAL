@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "parse.h"
 
-#define SOURCE_BUFSIZE 102400
+#define SOURCE_BUFSIZE 8192000
 char srcbuf[SOURCE_BUFSIZE];
 int main()
 {
