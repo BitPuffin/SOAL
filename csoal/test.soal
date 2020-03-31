@@ -1,0 +1,5 @@
+(def a int 1)
+(def b int 2)
+
+(pub def main (proc void ()
+  (print-number (+ a b))))
