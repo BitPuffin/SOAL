@@ -102,7 +102,6 @@ static void scan_to_non_whitespace(struct lex_state* state)
 		else if (*it == '\n') { /* @TODO: handle \r\f  etc*/
 			state->location.line++;
 			state->location.column = 0;
-			
 		} else {
 			state->location.column++;
 		}
