@@ -76,7 +76,6 @@ struct srcloc {
 
 struct lex_state {
 	struct srcloc location;
-	int paren_ticker;
 	char const* cursor;
 	char const* token_end;
 	size_t token_len;
