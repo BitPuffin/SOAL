@@ -248,8 +248,8 @@ bool consume_paren(struct parser_state *ps, char par) {
 	if (consume_char_tok(ps, par)) {
 		if (is_closing_paren(par)) {
 			char matching = get_matching_open_paren(par);
-			char *parstack = ps->parenstack;
-			char lastpar = arrlast(parstack);
+			char **pstack = &ps->parenstack;
+			char lastpar = arrlast(*pstack);
 			if(lastpar != matching) {
 				struct srcloc loc = ps->lxstate.location;
 				fprintf(stderr,
@@ -261,7 +261,7 @@ bool consume_paren(struct parser_state *ps, char par) {
 					loc.column);
 				exit(EXIT_FAILURE);
 			}
-			size_t len = arrlenu(parstack);
+			size_t len = arrlenu(*pstack);
 			if(len == 0) {
 				struct srcloc loc = ps->lxstate.location;
 				fprintf(stderr,
@@ -271,7 +271,7 @@ bool consume_paren(struct parser_state *ps, char par) {
 					loc.column);
 				exit(EXIT_FAILURE);
 			}
-			arrsetlen(parstack, len - 1);
+			arrdel(*pstack, len - 1);
 		} else {
 			arrput(ps->parenstack, par);
 		}
@@ -408,6 +408,7 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 	return true;
 
 nope:
+	before.parenstack = ps->parenstack;
 	*ps = before;
 	return false;
 }
@@ -517,6 +518,7 @@ bool consume_def(struct parser_state *ps, struct defnode *out)
 
 	return true;
 nope:
+	before.parenstack = ps->parenstack;
 	*ps = before;
 	return false;
 }
@@ -551,6 +553,7 @@ struct toplevelnode parse_toplevel(struct parser_state *ps) {
 void parse(char const *str, char const *fname)
 {
 	struct parser_state ps = {};
+
 	ps.lxstate = initlex(str, fname);
 	eat_token(&ps.lxstate);
 	struct toplevelnode rootnode = parse_toplevel(&ps);
