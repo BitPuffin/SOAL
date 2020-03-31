@@ -109,10 +109,35 @@ static void scan_to_non_whitespace(struct lex_state* state)
 	state->cursor = it;
 }
 
-static void assign_token_boundraries(struct lex_state *state)
+char const* lex_into_token(struct token *token, char const *str)
 {
-		state->token_end = find_terminator(state->cursor); /* @TODO factor out */
-		state->token_len = state->token_end - state->cursor;
+	char const *end;
+	char firstc = *str;
+
+	{	/* is it a single-char token */
+		char* token_char = strchr(token_chars, firstc);
+		if (token_char != NULL) {
+			token->type = *token_char;
+			end = str + 1;
+			return end;
+		}
+	}
+
+	end = find_terminator(str);
+	if (isdigit(firstc)) {
+		token->type = TOK_INTEGER;
+		/* @TODO set integer value */
+	} /*else*/ {
+		token->type = TOK_IDENTIFIER;
+		/* it is an identifier */
+		size_t sz = end - str;
+		/* @TODO the following malloc is likely exensive */
+		char* identstr = malloc(sizeof(char) * (sz + 1));
+		strncpy(identstr, str, sz);
+		identstr[sz] = '\0';
+		token->value.identifier = identstr;
+	}
+	return end;
 }
 
 struct token* eat_token(struct lex_state* state)
@@ -128,35 +153,31 @@ struct token* eat_token(struct lex_state* state)
 	state->location.column += state->token_len;
 	scan_to_non_whitespace(state);
 
-	struct token* tok = &(state->token);
-	char firstc = *state->cursor;
+	struct token* tok = &state->token;
 
-	{	/* is it a single-char token */
-		char* token_char = strchr(token_chars, firstc);
-		if (token_char != NULL) {
-			tok->type = *token_char;
-			state->token_len = 1;
-			state->token_end = state->cursor + 1;
-			return &state->token;
-		}
+	state->token_end = lex_into_token(tok, state->cursor);
+	state->token_len = state->token_end - state->cursor;
+
+	return tok;
+}
+
+/* implementing peek token may be a mistake because */
+/* not sure a lisp syntax even needs it */
+/* so it made eat_token more complicated */
+bool peek_token(struct lex_state *state, struct token *next)
+{
+	/* skip whitespace ugh */
+	char const* it = state->token_end;
+	for(; *it != '\0'; ++it) {
+		if (!isspace(*it))
+			break;
 	}
-
-	if (isdigit(firstc)) {
-		assign_token_boundraries(state);
-		state->token.type = TOK_INTEGER;
-		/* @TODO set integer value */
-	} else {
-		/* it is an identifier */
-		assign_token_boundraries(state);
-		/* @TODO the following malloc is likely exensive */
-		char* identstr = malloc(sizeof(char) * (state->token_len + 1)); 
-		strncpy(identstr, state->cursor, state->token_len);
-		identstr[state->token_len] = '\0';
-		state->token.type = TOK_IDENTIFIER;
-		state->token.value.identifier = identstr;
+	if(*state->token_end == '\0') {
+		return false;
 	}
+	char const *ignore = lex_into_token(next, it);
+	return true;
 
-	return &state->token;
 }
 
 #define SOURCE_BUFSIZE 102400
@@ -176,7 +197,21 @@ int main()
 	}
 
 	struct lex_state lxstate = initlex(srcbuf, "test.soal");
+	struct token *t = &lxstate.token;
 	while(lxstate.mode == LX_MODE_NORMAL) {
 		eat_token(&lxstate);
+		if (t->type == TOK_IDENTIFIER || t->type == TOK_INTEGER) {
+			printf("%s:%lu,%lu: %s\n",
+			       "test.soal",
+			       lxstate.location.line,
+			       lxstate.location.column,
+			       t->value.identifier);
+		} else {
+			printf("%s:%lu,%lu: %c\n",
+			       "test.soal",
+			       lxstate.location.line,
+			       lxstate.location.column,
+			       (char)t->type);
+		}
 	}
 }
