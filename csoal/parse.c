@@ -3,6 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <assert.h>
+
+#include "stb_ds.h"
 
 char const* delimiters = "()[]{}";
 bool is_terminator(char c)
@@ -20,24 +23,13 @@ char const* find_terminator(char const* str)
 	return NULL;
 }
 
-enum datum_t { INTEGER, SYMBOL };
-struct datum {
-	enum datum_t type;
-	union { int integer; char const* symbol; } value;
+struct srcloc {
+	char const* path;
+	size_t line;
+	size_t column;
 };
 
-enum node_type { FORM, DATUM };
-struct node {
-	enum node_type type;
-	union { struct form* form; struct datum* datum; } value;
-};
-
-struct form {
-	size_t child_count;
-	struct node children[];
-};
-
-const char* token_chars = "(){}[]\"\\'";
+const char* token_chars  = "(){}[]\"\\'";
 enum token_type {
 	TOK_ERROR,
 	TOK_PAREN_OPEN   = '(',
@@ -54,6 +46,7 @@ enum token_type {
 };
 
 struct token {
+	struct srcloc location;
 	enum token_type type;
 	union {
 		char const* identifier;
@@ -66,12 +59,6 @@ enum lex_mode {
 	LX_MODE_STRING,
 	LX_MODE_ERROR,
 	LX_MODE_DONE,
-};
-
-struct srcloc {
-	char const* path;
-	size_t line;
-	size_t column;
 };
 
 struct lex_state {
@@ -157,6 +144,7 @@ struct token* eat_token(struct lex_state* state)
 
 	state->token_end = lex_into_token(tok, state->cursor);
 	state->token_len = state->token_end - state->cursor;
+	tok->location = state->location;
 
 	return tok;
 }
@@ -177,28 +165,237 @@ bool peek_token(struct lex_state *state, struct token *next)
 	}
 	char const *ignore = lex_into_token(next, it);
 	return true;
-
 }
 
+
+const char* open_parens  = "([{";
+bool is_open_paren(char c)
+{
+	return strchr(open_parens, c) != NULL;
+}
+
+const char* closing_parens = ")]}";
+bool is_closing_paren(char c)
+{
+	return strchr(closing_parens, c) != NULL;
+}
+
+const char* matching_parens = "()[]{}";
+char get_matching_open_paren(char p)
+{
+	return *(strchr(matching_parens, p) - 1);
+}
+
+enum datum_t { INTEGER, IDENTIFIER };
+struct datum {
+	enum datum_t type;
+	union { int integer; char const* identifier; } value;
+};
+
+
+enum node_type { DEF_FORM, PROC_FORM , FORM, DATUM };
+struct node {
+	struct srcloc location;
+	enum node_type type;
+	union { struct form* form; struct datum* datum; } value;
+};
+
+struct parser_state {
+	struct lex_state lxstate;
+	char *parenstack;
+	struct node *nodestack;
+};
+
+#define ARRLEN(x) (sizeof(x) / sizeof(x[0]))
+
+enum keywords {
+	KW_PUB,
+	KW_DEF,
+	KW_PROC,
+};
+char const* keyword_strs[] = {
+	"pub",
+	"def",
+	"proc"
+};
+bool iskw(char const *ident)
+{
+	for(int i = 0; i < ARRLEN(keyword_strs); ++i) {
+		if(strcmp(keyword_strs[i], ident) == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool consume_char_tok(struct parser_state *ps, char c)
+{
+	if(ps->lxstate.token.type == c) {
+		eat_token(&ps->lxstate);
+		return true;
+	}
+	return false;
+}
+
+bool consume_paren(struct parser_state *ps, char par) {
+	if (consume_char_tok(ps, par)) {
+		arrput(ps->parenstack, par);
+		return true;
+	}
+	return false;
+}
+
+bool consume_kw(struct parser_state *ps, enum keywords kw)
+{
+	struct lex_state *ls = &ps->lxstate;
+	bool p = ls->token.type == TOK_IDENTIFIER;
+	p = p && strcmp(keyword_strs[kw], ls->token.value.identifier) == 0;
+	if (p) {
+		eat_token(ls);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+struct intnode {
+	struct srcloc location;
+	int value;
+};
+
+struct argnode {
+	/* @TODO make args */
+};
+
+struct procnode {
+	
+};
+
+struct identnode {
+	struct srcloc location;
+	char const *identifier;
+};
+
+struct exprnode;
+struct formnode {
+	struct srcloc location;
+	struct identnode identifier;
+	struct exprnode *args;
+};
+
+enum expr_type {
+	EXPR_INTEGER,
+	EXPR_PROC,
+	EXPR_FORM,
+};
+struct exprnode {
+	struct srcloc location;
+	enum expr_type type;
+	union {
+		struct intnode integer;
+		struct procnode proc;
+		struct formnode call;
+	} value;
+};
+
+
+bool consume_iden(struct parser_state *ps, struct identnode *out)
+{
+	if (ps->lxstate.token.type != TOK_IDENTIFIER)
+		return false;
+
+	out->location = ps->lxstate.location;
+	out->identifier = ps->lxstate.token.value.identifier;
+	eat_token(&ps->lxstate);
+	return true;
+}
+
+bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
+{
+	
+}
+
+struct defnode {
+	struct srcloc location;
+	bool public;
+	bool explicit_type;
+	struct identnode type; /* only valid if explict_type is true */
+	struct identnode identifier;
+	struct exprnode value;
+};
+
+bool consume_def(struct parser_state *ps, struct defnode *out)
+{
+	struct parser_state before = *ps;
+	memset(out, 0, sizeof(struct defnode));
+	out->location = ps->lxstate.location;
+
+	if(!consume_paren(ps, '('))
+		goto nope;
+
+	if(consume_kw(ps, KW_PUB))
+		out->public = true;
+
+	if(!consume_kw(ps, KW_DEF))
+		goto nope;
+
+	if(!consume_iden(ps, &out->identifier)) {
+		struct srcloc loc = ps->lxstate.location;
+		fprintf(stderr,
+		        "Expected identifier at %s:%lu,%lu\n",
+		        loc.path,
+		        loc.line,
+		        loc.column);
+		exit(EXIT_FAILURE);
+	}
+
+	out->explicit_type = consume_iden(ps, &out->type);
+
+	if(!consume_exprnode(ps, &out->value)) {
+		struct srcloc loc = ps->lxstate.location;
+		fprintf(stderr,
+		        "Definition requires value at %s:%lu,%lu\n",
+		        loc.path,
+		        loc.line,
+		        loc.column);
+		exit(EXIT_FAILURE);
+	}
+
+	if(!consume_paren(ps, ')')) {
+		struct srcloc loc = ps->lxstate.location;
+		fprintf(stderr,
+		        "expected closing parenthesis at %s:%lu,%lu\n",
+		        loc.path,
+		        loc.line,
+		        loc.column);
+		exit(EXIT_FAILURE);
+	}
+
+	return true;
+nope:
+	*ps = before;
+	return false;
+}
+
+void parse_toplevel(struct lex_state *lxstate) {
+}
 
 void parse(char const *str, char const *fname)
 {
 	struct lex_state lxstate = initlex(str, fname);
 	struct token *t = &lxstate.token;
+	struct token next = {};
 	while(lxstate.mode == LX_MODE_NORMAL) {
 		eat_token(&lxstate);
-		if (t->type == TOK_IDENTIFIER || t->type == TOK_INTEGER) {
-			printf("%s:%lu,%lu: %s\n",
-			       fname,
-			       lxstate.location.line,
-			       lxstate.location.column,
-			       t->value.identifier);
-		} else {
-			printf("%s:%lu,%lu: %c\n",
-			       fname,
-			       lxstate.location.line,
-			       lxstate.location.column,
-			       (char)t->type);
+		if (t->type == TOK_PAREN_OPEN) {
+			eat_token(&lxstate);
+			if(t->type == TOK_IDENTIFIER && iskw(t->value.identifier)) {
+				 /* ignore if it exists for now */
+				peek_token(&lxstate, &next);
+				
+			}
 		}
 	}
 }
