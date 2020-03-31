@@ -20,3 +20,7 @@ int main()
 	}
 	parse(srcbuf, "test.soal");
 }
+
+
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
