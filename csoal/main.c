@@ -111,33 +111,47 @@ static void scan_to_non_whitespace(struct lex_state* state)
 	state->cursor = it;
 }
 
+static void assign_token_boundraries(struct lex_state *state)
+{
+		state->token_end = find_terminator(state->cursor); /* @TODO factor out */
+		state->token_len = state->token_end - state->cursor;
+}
+
 struct token* eat_token(struct lex_state* state)
 {
+	/* are we done? */
 	if(*state->cursor == '\0') {
 		state->mode = LX_MODE_DONE;
 		return NULL;
 	}
 
+	/* move forward */
 	state->cursor = state->token_end;
 	state->location.column += state->token_len;
-
 	scan_to_non_whitespace(state);
+
 	struct token* tok = &(state->token);
-	char c = *state->cursor;
-	char* token_char = strchr(token_chars, c);
-	if (token_char != NULL) {
-		tok->type = *token_char;
-		state->token_len = 1;
-		state->token_end = state->cursor + 1;
-	} else if (isdigit(c)) {
-		state->token_end = find_terminator(state->cursor); /* @TODO factor out */
-		state->token_len = state->token_end - state->cursor;
+	char firstc = *state->cursor;
+
+	{	/* is it a single-char token */
+		char* token_char = strchr(token_chars, firstc);
+		if (token_char != NULL) {
+			tok->type = *token_char;
+			state->token_len = 1;
+			state->token_end = state->cursor + 1;
+			return;
+		}
+	}
+
+	if (isdigit(firstc)) {
+		assign_token_boundraries(state);
 		state->token.type = TOK_INTEGER;
 		/* @TODO set integer value */
-	} else { /* it is an identifier */
-		state->token_end = find_terminator(state->cursor); /* @TODO factor out*/
-		state->token_len = state->token_end - state->cursor;
-		char* identstr = malloc(sizeof(char) * (state->token_len + 1)); /* @TODO this malloc is exensive */
+	} else {
+		/* it is an identifier */
+		assign_token_boundraries(state);
+		/* @TODO the following malloc is likely exensive */
+		char* identstr = malloc(sizeof(char) * (state->token_len + 1)); 
 		strncpy(identstr, state->cursor, state->token_len);
 		identstr[state->token_len] = '\0';
 		state->token.type = TOK_IDENTIFIER;
