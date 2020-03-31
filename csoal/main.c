@@ -139,7 +139,7 @@ struct token* eat_token(struct lex_state* state)
 			tok->type = *token_char;
 			state->token_len = 1;
 			state->token_end = state->cursor + 1;
-			return;
+			return &state->token;
 		}
 	}
 
@@ -157,6 +157,8 @@ struct token* eat_token(struct lex_state* state)
 		state->token.type = TOK_IDENTIFIER;
 		state->token.value.identifier = identstr;
 	}
+
+	return &state->token;
 }
 
 #define SOURCE_BUFSIZE 102400
