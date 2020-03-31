@@ -163,7 +163,7 @@ struct token* eat_token(struct lex_state* state)
 char srcbuf[SOURCE_BUFSIZE];
 int main()
 {
-	{ /* read source */
+	{	/* read source */
 		FILE* testfile = fopen("test.soal", "r");
 		size_t readcount = fread(srcbuf, 1, SOURCE_BUFSIZE, testfile);
 		if(readcount >= SOURCE_BUFSIZE-1) {
