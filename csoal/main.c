@@ -32,7 +32,7 @@ struct node {
 	union { struct form* form; struct datum* datum; } value;
 };
 
-typedef struct {
+struct {
 	size_t child_count;
 	struct node children[];
 } form;
