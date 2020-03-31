@@ -32,10 +32,10 @@ struct node {
 	union { struct form* form; struct datum* datum; } value;
 };
 
-struct {
+struct form {
 	size_t child_count;
 	struct node children[];
-} form;
+};
 
 const char* token_chars = "(){}[]\"\\'";
 enum token_type {
