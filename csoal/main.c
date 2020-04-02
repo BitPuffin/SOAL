@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "parse.h"
 
+void test_add();
 #define SOURCE_BUFSIZE 8192000
 char srcbuf[SOURCE_BUFSIZE];
 int main()
@@ -19,6 +20,8 @@ int main()
 		fclose(testfile);
 	}
 	parse(srcbuf, "test.soal");
+
+	test_add();
 }
 
 
