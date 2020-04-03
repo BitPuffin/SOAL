@@ -97,8 +97,7 @@ void advance_instruction(struct unsafevm *vm)
 	/* This is so that when when we get to a     */
 	/* call instruction we can push the address  */
 	/* to the next instruction on the stack.     */
-	size_t operand_offset = in->operand_count * sizeof(struct operand);
-	vm->iptr += (sizeof(struct instruction) + operand_offset);
+	vm->iptr++;
 
 	/* iterate over instruction_data as if it was an array */
 	struct instruction_data data = {};
