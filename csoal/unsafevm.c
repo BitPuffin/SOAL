@@ -103,7 +103,7 @@ void advance_instruction(struct unsafevm *vm)
 	struct instruction_data data = {};
 	void **oprdata = (void *)&data;
 	struct operand *opr = in->operands;
-	void *end = opr + in->operand_count;
+	struct operand *end = opr + in->operand_count;
 	while (opr < end) {
 		/* decide if we give a pointer to the register itself     */
 		/* or give a pointer stored in a register (to the operand)*/
