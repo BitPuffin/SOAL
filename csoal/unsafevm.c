@@ -91,14 +91,23 @@ instruction_impl op_impls[] = {
 void advance_instruction(struct unsafevm *vm)
 {
 	struct instruction *in = vm->iptr;
+
+	/* Move iptr forward before actual dispatch. */
+	/*                                           */
+	/* This is so that when when we get to a     */
+	/* call instruction we can push the address  */
+	/* to the next instruction on the stack.     */
 	size_t operand_offset = in->operand_count * sizeof(struct operand);
 	vm->iptr += (sizeof(struct instruction) + operand_offset);
 
+	/* iterate over instruction_data as if it was an array */
 	struct instruction_data data = {};
 	void **oprdata = (void *)&data;
 	struct operand *opr = in->operands;
 	void *end = opr + in->operand_count;
-	for (; opr < end; opr++) {
+	while (opr < end) {
+		/* decide if we give a pointer to the register itself     */
+		/* or give a pointer stored in a register (to the operand)*/
 		switch(opr->mode) {
 		case MODE_REG:
 			*oprdata = &vm->registers[opr->reg];
@@ -107,9 +116,11 @@ void advance_instruction(struct unsafevm *vm)
 			*oprdata = (void *)vm->registers[opr->reg];
 			break;
 		}
+		opr++;
 		oprdata++;
 	}
 
+	/* dispatch to instruction handler */
 	op_impls[in->opcode](vm, &data);
 }
 
