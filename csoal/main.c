@@ -20,8 +20,6 @@ int main()
 		fclose(testfile);
 	}
 	parse(srcbuf, "test.soal");
-
-	test_add();
 }
 
 
