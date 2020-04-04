@@ -1,7 +1,6 @@
 #include "ints.h"
 #include <stddef.h>
-
-#include <stdio.h>
+#include <stdlib.h>
 
 /* codes for registers */
 enum regcode {
@@ -46,12 +45,32 @@ struct instruction {
 };
 
 struct unsafevm {
-	u8 stack[1024*1024];
+	u8 *stack;
 	u64 registers[REG_COUNT];
 	u8 *datasegment;
 	u8 *codesegment;
 	struct instruction *iptr;
 };
+
+struct unsafevm inituvm_stacksz(size_t sz);
+struct unsafevm inituvm()
+{
+	return inituvm_stacksz(1024*1024);
+}
+
+struct unsafevm inituvm_stacksz(size_t sz)
+{
+	struct unsafevm vm = {};
+	vm.stack = malloc(sz);
+	vm.registers[REG_SBP] = (u64)(vm.stack + sz);
+	vm.registers[REG_SP]  = vm.registers[REG_SBP];
+	return vm;
+}
+
+void destroyvm(struct unsafevm vm)
+{
+	free(vm.stack);
+}
 
 /* data given during dispatch to instruction */
 struct instruction_data {
@@ -71,6 +90,19 @@ void op_add_int(struct unsafevm *vm, struct instruction_data *id)
 	*opd->dest = *opd->src + *opd->dest;
 }
 
+struct op_push_data {
+	u64 *val;
+};
+void op_push(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_push_data *d = (struct op_push_data *)id;
+	u64 *stack = (u64 *)vm->registers[REG_SP];
+	stack--;
+	vm->registers[REG_SP] = (u64)stack;
+	*stack = *d->val;
+	
+}
+
 typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
 enum opcode {
 	OPC_CALL,
@@ -78,6 +110,7 @@ enum opcode {
 	OPC_RET,
 	OPC_ADD_INT,
 	OPC_LOAD_INT,
+	OPC_PUSH,
 };
 
 instruction_impl op_impls[] = {
@@ -86,6 +119,7 @@ instruction_impl op_impls[] = {
 	NULL,
 	op_add_int,
 	NULL,
+	op_push,
 };
 
 void advance_instruction(struct unsafevm *vm)
@@ -122,4 +156,3 @@ void advance_instruction(struct unsafevm *vm)
 	/* dispatch to instruction handler */
 	op_impls[in->opcode](vm, &data);
 }
-

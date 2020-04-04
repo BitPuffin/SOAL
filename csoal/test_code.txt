@@ -49,3 +49,24 @@ void test_add() {
 	       (int) vm.registers[REG_2]);
 }
 
+
+
+/* test push instruction */
+/* sp, spa, sv were      */
+/* checked in debugger   */
+void test_push() {
+	struct unsafevm vm = inituvm();
+	struct instruction i = {
+		OPC_PUSH,
+		1,
+		{ MODE_REG, REG_0 }
+	};
+	vm.registers[REG_0] = 1337;
+	u64 sp = vm.registers[REG_SP];
+	vm.iptr = &i;
+	advance_instruction(&vm);
+	u64 spa = vm.registers[REG_SP];
+	u64 *sv = (u64 *)spa;
+	
+	destroyvm(vm);
+}
