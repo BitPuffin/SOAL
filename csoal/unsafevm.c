@@ -52,13 +52,13 @@ struct unsafevm {
 	struct instruction *iptr;
 };
 
-struct unsafevm inituvm_stacksz(size_t sz);
-struct unsafevm inituvm()
+struct unsafevm mkuvm_stacksz(size_t sz);
+struct unsafevm mkuvm()
 {
-	return inituvm_stacksz(1024*1024);
+	return mkuvm_stacksz(1024*1024);
 }
 
-struct unsafevm inituvm_stacksz(size_t sz)
+struct unsafevm mkuvm_stacksz(size_t sz)
 {
 	struct unsafevm vm = {};
 	vm.stack = malloc(sz);
