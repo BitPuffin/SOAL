@@ -1,0 +1,51 @@
+/* code that might get turned into tests later on if I add a test suite */
+/* for now that's not much of a concern                                 */
+
+
+/* testing the add instruction for the unsafevm */
+void test_add() {
+	struct unsafevm vm = {};
+	struct instruction adds[3] =
+		{
+			{
+				OP_ADD_INT,
+				2,
+				{ { MODE_REG, REG_0 }, { MODE_REG, REG_2 } }
+			},
+			{
+				OP_ADD_INT,
+				2,
+				{ { MODE_REG, REG_0 }, { MODE_REG, REG_2 } }
+			},
+			{
+				OP_ADD_INT,
+				2,
+				{ { MODE_REG, REG_0 }, { MODE_REG, REG_2 } }
+			}
+		};
+	vm.registers[REG_0] = 15;
+	vm.registers[REG_2] = 17;
+	vm.iptr = adds;
+	printf("before: {r0: %d} {r2: %d}\n",
+	       (int) vm.registers[REG_0],
+	       (int) vm.registers[REG_2]);
+
+	advance_instruction(&vm);
+
+	printf("after:  {r0: %d} {r2: %d}\n",
+	       (int) vm.registers[REG_0],
+	       (int) vm.registers[REG_2]);
+	vm.registers[REG_0] = 1;
+	advance_instruction(&vm);
+
+	printf("after:  {r0: %d} {r2: %d}\n",
+	       (int) vm.registers[REG_0],
+	       (int) vm.registers[REG_2]);
+	vm.registers[REG_0] = 2;
+	advance_instruction(&vm);
+
+	printf("after:  {r0: %d} {r2: %d}\n",
+	       (int) vm.registers[REG_0],
+	       (int) vm.registers[REG_2]);
+}
+

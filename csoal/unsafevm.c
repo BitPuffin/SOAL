@@ -123,24 +123,3 @@ void advance_instruction(struct unsafevm *vm)
 	op_impls[in->opcode](vm, &data);
 }
 
-void test_add() {
-	struct unsafevm vm = {};
-	struct instruction add = {
-		OP_ADD_INT,
-		2,
-		{ { MODE_REG, REG_0 }, { MODE_REG, REG_2 } }
-	};
-	vm.registers[REG_0] = 15;
-	vm.registers[REG_2] = 17;
-	
-	vm.iptr = &add;
-	printf("before: {r0: %d} {r2: %d}\n",
-	       (int) vm.registers[REG_0],
-	       (int) vm.registers[REG_2]);
-
-	advance_instruction(&vm);
-
-	printf("after:  {r0: %d} {r2: %d}\n",
-	       (int) vm.registers[REG_0],
-	       (int) vm.registers[REG_2]);
-}
