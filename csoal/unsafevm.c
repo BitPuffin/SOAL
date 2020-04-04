@@ -73,11 +73,11 @@ void op_add_int(struct unsafevm *vm, struct instruction_data *id)
 
 typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
 enum opcode {
-	OP_CALL,
-	OP_LEAVE,
-	OP_RET,
-	OP_ADD_INT,
-	OP_LOAD_INT,
+	OPC_CALL,
+	OPC_LEAVE,
+	OPC_RET,
+	OPC_ADD_INT,
+	OPC_LOAD_INT,
 };
 
 instruction_impl op_impls[] = {
