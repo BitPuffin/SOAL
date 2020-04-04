@@ -67,7 +67,7 @@ struct unsafevm mkuvm_stacksz(size_t sz)
 	return vm;
 }
 
-void destroyvm(struct unsafevm vm)
+void destroyuvm(struct unsafevm vm)
 {
 	free(vm.stack);
 }
@@ -100,7 +100,18 @@ void op_push(struct unsafevm *vm, struct instruction_data *id)
 	stack--;
 	vm->registers[REG_SP] = (u64)stack;
 	*stack = *d->val;
-	
+}
+
+struct op_1operand_data {
+	u64 *val;
+};
+void op_pop(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_1operand_data *d = (struct op_1operand_data *)id;
+	u64 *stack = (u64 *)vm->registers[REG_SP];
+	*d->val = *stack;
+	stack++;
+	vm->registers[REG_SP] = (u64)stack;
 }
 
 typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
@@ -111,6 +122,7 @@ enum opcode {
 	OPC_ADD_INT,
 	OPC_LOAD_INT,
 	OPC_PUSH,
+	OPC_POP,
 };
 
 instruction_impl op_impls[] = {
@@ -120,6 +132,7 @@ instruction_impl op_impls[] = {
 	op_add_int,
 	NULL,
 	op_push,
+	op_pop,
 };
 
 void advance_instruction(struct unsafevm *vm)

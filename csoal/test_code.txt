@@ -70,3 +70,25 @@ void test_push() {
 	
 	destroyvm(vm);
 }
+
+
+/* test the pop instruction */
+void test_pop()
+{
+	struct unsafevm vm = mkuvm();
+	u64 *stack = (u64 *)vm.registers[REG_SP];
+	stack--;
+	vm.registers[REG_SP] = (u64)stack;
+	*stack = 1337;
+
+	struct instruction i = {
+		OPC_POP,
+		1,
+		{ MODE_REG, REG_0 }
+	};
+	vm.iptr = &i;
+	advance_instruction(&vm);
+
+	u64 r0 = vm.registers[REG_0];
+	destroyuvm(vm);
+}
