@@ -92,3 +92,31 @@ void test_pop()
 	u64 r0 = vm.registers[REG_0];
 	destroyuvm(vm);
 }
+
+
+void test_call()
+{
+	struct instruction ins[] = {
+		{
+			OPC_CALL,
+			{ { MODE_REG, REG_0 } },
+		},
+	};
+	struct unsafevm vm = mkuvm();
+
+	vm.iptr = ins;
+	i64 offset = -800;
+	vm.registers[REG_0] = offset;
+
+	struct instruction *ibefore = vm.iptr;
+	ibefore++;
+
+	advance_instruction(&vm);
+
+	struct instruction *i = vm.iptr;
+	i64 off = ibefore - i;
+	u64 p = pop(&vm);
+	u64 pb = (u64)ins;
+
+	destroyuvm(vm);
+}
