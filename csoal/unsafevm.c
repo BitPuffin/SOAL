@@ -38,9 +38,9 @@ struct operand {
 	u8 reg;
 };
 
+
 struct instruction {
 	u8 opcode;
-	u8 operand_count;
 	struct operand operands[4];
 };
 
@@ -135,6 +135,17 @@ instruction_impl op_impls[] = {
 	op_pop,
 };
 
+u8 oprcounts[] = {
+	1, /*      */
+	0, /*      */
+	0, /*      */
+	2, /* add  */
+	0, /*      */
+	1, /* push */
+	1, /* pop  */
+};
+
+
 void advance_instruction(struct unsafevm *vm)
 {
 	struct instruction *in = vm->iptr;
@@ -150,7 +161,7 @@ void advance_instruction(struct unsafevm *vm)
 	struct instruction_data data = {};
 	void **oprdata = (void *)&data;
 	struct operand *opr = in->operands;
-	struct operand *end = opr + in->operand_count;
+	struct operand *end = opr + oprcounts[in->opcode];
 	while (opr < end) {
 		/* decide if we give a pointer to the register itself     */
 		/* or give a pointer stored in a register (to the operand)*/
