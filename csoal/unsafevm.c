@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include <dyncall.h>
+
 /* codes for registers */
 enum regcode {
 	REG_0,
@@ -53,6 +55,7 @@ struct unsafevm {
 	u8 *datasegment;
 	u8 *codesegment;
 	struct instruction *iptr;
+	DCCallVM *dyncall;
 };
 
 struct unsafevm mkuvm_stacksz(size_t sz);
@@ -67,12 +70,16 @@ struct unsafevm mkuvm_stacksz(size_t sz)
 	vm.stack = malloc(sz);
 	vm.registers[REG_SBP] = (u64)(vm.stack + sz);
 	vm.registers[REG_SP]  = vm.registers[REG_SBP];
+	vm.dyncall = dcNewCallVM(1024);
+	dcMode(vm.dyncall, DC_CALL_C_DEFAULT);
+	dcReset(vm.dyncall);
 	return vm;
 }
 
 void destroyuvm(struct unsafevm vm)
 {
 	free(vm.stack);
+	dcFree(vm.dyncall);
 }
 
 /* data given during dispatch to instruction */
@@ -94,6 +101,43 @@ void op_call(struct unsafevm *vm, struct instruction_data *id)
 	i64 addroffs = (i64)*d->val;
 	push(vm, (u64)vm->iptr);
 	vm->iptr += addroffs;
+}
+
+void op_c_reset(struct unsafevm *vm, struct instruction_data *id)
+{
+	dcReset(vm->dyncall);
+}
+
+/* @TODO: direct pointer in bytecode will probably be weird */
+/* but we'll see. */
+struct call_void_data {
+	DCpointer *fptr;
+};
+void op_call_c_void(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct call_void_data *d = (struct call_void_data *)id;
+	dcCallVoid(vm->dyncall, *d->fptr);
+}
+
+/* @TODO: direct pointer in bytecode will probably be weird */
+/* but we'll see. */
+struct call_int_data {
+	DCpointer *fptr;
+	i64 *result;
+};
+void op_call_c_int(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct call_int_data *d = (struct call_int_data *)id;
+	*d->result = dcCallInt(vm->dyncall, *d->fptr);
+}
+
+struct c_int_arg_data {
+	i64 *arg;
+};
+void op_c_int_arg(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct c_int_arg_data *d = (struct c_int_arg_data *)id;
+	dcArgLongLong(vm->dyncall, *d->arg);
 }
 
 struct op_add_data {
@@ -142,6 +186,10 @@ enum opcode {
 	OPC_CALL,
 	OPC_LEAVE,
 	OPC_RET,
+	OPC_C_RESET,
+	OPC_CALL_C_VOID,
+	OPC_CALL_C_INT,
+	OPC_C_INT_ARG,
 	OPC_ADD_INT,
 	OPC_LOAD_INT,
 	OPC_PUSH,
@@ -152,6 +200,10 @@ instruction_impl op_impls[] = {
 	op_call,
 	NULL,
 	NULL,
+	op_c_reset,
+	op_call_c_void,
+	op_call_c_int,
+	op_c_int_arg,
 	op_add_int,
 	NULL,
 	op_push,
@@ -159,13 +211,17 @@ instruction_impl op_impls[] = {
 };
 
 u8 oprcounts[] = {
-	1, /*      */
-	0, /*      */
-	0, /*      */
-	2, /* add  */
-	0, /*      */
-	1, /* push */
-	1, /* pop  */
+	1, /* call        */
+	0, /* leave       */
+	0, /* ret         */
+	0, /* c_reset     */
+	1, /* call_c_void */
+	2, /* call_c_int  */
+	1, /* c_int_arg   */
+	2, /* add         */
+	0, /* load        */
+	1, /* push        */
+	1, /* pop         */
 };
 
 
