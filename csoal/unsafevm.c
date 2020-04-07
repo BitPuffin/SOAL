@@ -80,6 +80,19 @@ struct instruction_data {
 	void *d;
 };
 
+struct op_1operand_data {
+	u64 *val;
+};
+
+static void push(struct unsafevm *vm, u64 v);
+void op_call(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_1operand_data *d = (struct op_1operand_data *) id;
+	i64 addroffs = (i64)*d->val;
+	push(vm, (u64)vm->iptr);
+	vm->iptr += addroffs;
+}
+
 struct op_add_data {
 	int *src;
 	int *dest;
@@ -93,25 +106,32 @@ void op_add_int(struct unsafevm *vm, struct instruction_data *id)
 struct op_push_data {
 	u64 *val;
 };
-void op_push(struct unsafevm *vm, struct instruction_data *id)
+static void push(struct unsafevm *vm, u64 val)
 {
-	struct op_push_data *d = (struct op_push_data *)id;
 	u64 *stack = (u64 *)vm->registers[REG_SP];
 	stack--;
 	vm->registers[REG_SP] = (u64)stack;
-	*stack = *d->val;
+	*stack = val;
+}
+void op_push(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_push_data *d = (struct op_push_data *)id;
+	push(vm, *d->val);
 }
 
-struct op_1operand_data {
-	u64 *val;
-};
+static u64 pop(struct unsafevm *vm)
+{
+	u64 *stack = (u64 *)vm->registers[REG_SP];
+	u64 v = *stack;
+	stack++;
+	vm->registers[REG_SP] = (u64)stack;
+	return v;
+}
+
 void op_pop(struct unsafevm *vm, struct instruction_data *id)
 {
 	struct op_1operand_data *d = (struct op_1operand_data *)id;
-	u64 *stack = (u64 *)vm->registers[REG_SP];
-	*d->val = *stack;
-	stack++;
-	vm->registers[REG_SP] = (u64)stack;
+	*d->val = pop(vm);
 }
 
 typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
@@ -126,7 +146,7 @@ enum opcode {
 };
 
 instruction_impl op_impls[] = {
-	NULL,
+	op_call,
 	NULL,
 	NULL,
 	op_add_int,
