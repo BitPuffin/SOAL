@@ -147,3 +147,38 @@ void test_direct_value()
 
 	destroyuvm(vm);
 }
+
+
+
+void _print_number(i64 num);
+void test_call_c_void()
+{
+	struct unsafevm vm = mkuvm();
+	struct instruction instructions[] = {
+		{
+			OPC_C_INT_ARG,
+			{
+				{ MODE_REG, REG_0, 0, 0 }
+			}
+		},
+		{
+			OPC_CALL_C_VOID,
+			{
+				{ MODE_REG, REG_8, 0, 0 }
+			}
+		}
+	};
+	vm.iptr = instructions;
+	vm.registers[REG_0] = (u64)1337;
+	vm.registers[REG_8] = (u64)_print_number;
+
+	advance_instruction(&vm);
+	advance_instruction(&vm);
+}
+
+#include <stdio.h>
+
+void _print_number(i64 num)
+{
+	printf("%ld", num);
+}
