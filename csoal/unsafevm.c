@@ -31,11 +31,14 @@ enum regcode {
 enum operand_mode {
 	MODE_REG,
 	MODE_MEM,
+	MODE_DIRECT,
 };
 
 struct operand {
 	u8 mode;
 	u8 reg;
+	u16 __padding__;
+	u64 direct_value;
 };
 
 
@@ -192,6 +195,8 @@ void advance_instruction(struct unsafevm *vm)
 		case MODE_MEM:
 			*oprdata = (void *)vm->registers[opr->reg];
 			break;
+		case MODE_DIRECT:
+			*oprdata = &opr->direct_value;
 		}
 		opr++;
 		oprdata++;
@@ -200,3 +205,4 @@ void advance_instruction(struct unsafevm *vm)
 	/* dispatch to instruction handler */
 	op_impls[in->opcode](vm, &data);
 }
+
