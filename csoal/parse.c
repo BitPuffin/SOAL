@@ -7,6 +7,9 @@
 
 #include "stb_ds.h"
 
+#include "info.h"
+#include "ast.h"
+
 char const* delimiters = "()[]{}";
 bool is_terminator(char c)
 {
@@ -22,12 +25,6 @@ char const* find_terminator(char const* str)
 	}
 	return NULL;
 }
-
-struct srcloc {
-	char const* path;
-	size_t line;
-	size_t column;
-};
 
 const char* token_chars  = "(){}[]\"\\'";
 enum token_type {
@@ -175,20 +172,6 @@ struct token* eat_token(struct lex_state* state)
 /* } */
 
 
-enum datum_t { INTEGER, IDENTIFIER };
-struct datum {
-	enum datum_t type;
-	union { int integer; char const* identifier; } value;
-};
-
-
-enum node_type { DEF_FORM, PROC_FORM , FORM, DATUM };
-struct node {
-	struct srcloc location;
-	enum node_type type;
-	union { struct form* form; struct datum* datum; } value;
-};
-
 struct parser_state {
 	struct lex_state lxstate;
 	char *parenstack;
@@ -293,51 +276,6 @@ bool consume_kw(struct parser_state *ps, enum keywords kw)
 	}
 }
 
-
-struct intnode {
-	struct srcloc location;
-	int value;
-};
-
-struct argnode {
-	/* @TODO make args */
-};
-
-
-struct identnode {
-	struct srcloc location;
-	char const *identifier;
-};
-
-struct procnode {
-	struct srcloc location;
-	struct identnode returntype;
-	struct argnode *args;
-	struct exprnode *exprs;
-};
-
-struct formnode {
-	struct srcloc location;
-	struct identnode identifier;
-	struct exprnode *args;
-};
-
-enum expr_type {
-	EXPR_INTEGER,
-	EXPR_IDENTIFIER,
-	EXPR_PROC,
-	EXPR_FORM,
-};
-struct exprnode {
-	struct srcloc location;
-	enum expr_type type;
-	union {
-		struct intnode integer;
-		struct identnode identifier;
-		struct procnode proc;
-		struct formnode form;
-	} value;
-};
 
 
 bool consume_iden(struct parser_state *ps, struct identnode *out)
@@ -460,15 +398,6 @@ bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 	return false;
 }
 
-struct defnode {
-	struct srcloc location;
-	bool public;
-	bool explicit_type;
-	struct identnode type; /* only valid if explict_type is true */
-	struct identnode identifier;
-	struct exprnode value;
-};
-
 bool consume_def(struct parser_state *ps, struct defnode *out)
 {
 	struct parser_state before = *ps;
@@ -522,11 +451,6 @@ nope:
 	*ps = before;
 	return false;
 }
-
-struct toplevelnode {
-	char const *filename;
-	struct defnode *definitions;
-};
 
 struct toplevelnode parse_toplevel(struct parser_state *ps) {
 	struct toplevelnode node = {};
