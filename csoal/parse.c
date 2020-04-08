@@ -301,7 +301,7 @@ bool consume_integer(struct parser_state *ps, struct intnode *integer)
 	}
 }
 
-bool consume_arglist(struct parser_state *ps, struct argnode **out)
+bool consume_paramlist(struct parser_state *ps, struct argnode **out)
 {
 	return consume_paren(ps, '(') && consume_paren(ps, ')');
 }
@@ -319,7 +319,7 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 		goto nope;
 	if(!consume_iden(ps, &proc->returntype))
 		goto nope;
-	if(!consume_arglist(ps, &proc->args))
+	if(!consume_paramlist(ps, &proc->args))
 		goto nope;
 
 	struct exprnode expr;
