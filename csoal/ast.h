@@ -3,11 +3,6 @@ struct intnode {
 	int value;
 };
 
-struct argnode {
-	/* @TODO make args */
-};
-
-
 struct identnode {
 	struct srcloc location;
 	char const *identifier;
