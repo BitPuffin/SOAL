@@ -1,15 +1,3 @@
-enum datum_t { INTEGER, IDENTIFIER };
-struct datum {
-	enum datum_t type;
-	union { int integer; char const* identifier; } value;
-	};
-enum node_type { DEF_FORM, PROC_FORM , FORM, DATUM };
-struct node {
-	struct srcloc location;
-	enum node_type type;
-	union { struct form* form; struct datum* datum; } value;
-};
-
 struct intnode {
 	struct srcloc location;
 	int value;
