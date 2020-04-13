@@ -1,7 +1,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "parse.h"
+#include <stdbool.h>
+
+#include "stb_ds.h"
+
+#include "info.h"
+#include "ints.h"
+#include "ast.h"
+#include "parse.c"
+#include "bytecodegen.c"
+#include "unsafevm.c"
 
 #define SOURCE_BUFSIZE 8192000
 char srcbuf[SOURCE_BUFSIZE];
@@ -18,7 +27,9 @@ int main()
 		srcbuf[readcount] = '\0';
 		fclose(testfile);
 	}
-	parse(srcbuf, "test.soal");
+	struct toplevelnode n = parse(srcbuf, "test.soal");
+	struct genstate gs = emit_bytecode(&n);
+	run_program(&gs);
 }
 
 

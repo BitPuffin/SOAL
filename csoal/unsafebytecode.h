@@ -33,7 +33,7 @@ enum operand_mode {
 struct operand {
 	u8 mode;
 	u8 reg;
-	u16 __padding__;
+	i32 offset;
 	u64 direct_value;
 };
 
@@ -55,4 +55,13 @@ enum opcode {
 	OPC_LOAD_INT,
 	OPC_PUSH,
 	OPC_POP,
+};
+
+
+struct genstate {
+	struct	{
+		char *key;
+		size_t value;
+	}	*offset_tbl;
+	u8	*outbuf;
 };

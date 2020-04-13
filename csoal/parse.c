@@ -5,11 +5,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include "stb_ds.h"
-
-#include "info.h"
-#include "ast.h"
-
 char const* delimiters = "()[]{}";
 bool is_terminator(char c)
 {
@@ -46,7 +41,7 @@ struct token {
 	struct srcloc location;
 	enum token_type type;
 	union {
-		char const* identifier;
+		char *identifier;
 		int integer;
 	} value;
 };
@@ -474,11 +469,11 @@ struct toplevelnode parse_toplevel(struct parser_state *ps) {
 	return node;
 }
 
-void parse(char const *str, char const *fname)
+struct toplevelnode parse(char const *str, char const *fname)
 {
 	struct parser_state ps = {};
 
 	ps.lxstate = initlex(str, fname);
 	eat_token(&ps.lxstate);
-	struct toplevelnode rootnode = parse_toplevel(&ps);
+	return parse_toplevel(&ps);
 }

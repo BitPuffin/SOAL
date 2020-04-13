@@ -1,11 +1,11 @@
 struct intnode {
 	struct srcloc location;
-	int value;
+	i64 value;
 };
 
 struct identnode {
 	struct srcloc location;
-	char const *identifier;
+	char *identifier;
 };
 
 struct procnode {

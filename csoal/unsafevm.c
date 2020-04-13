@@ -1,10 +1,6 @@
-#include "ints.h"
 #include <stddef.h>
-#include <stdlib.h>
 
 #include <dyncall.h>
-
-#include "unsafebytecode.h"
 
 struct unsafevm mkuvm();
 struct unsafevm mkuvm_stacksz(size_t sz);
@@ -196,7 +192,7 @@ void advance_instruction(struct unsafevm *vm)
 			*oprdata = &vm->registers[opr->reg];
 			break;
 		case MODE_MEM:
-			*oprdata = (void *)vm->registers[opr->reg];
+			*oprdata = (void *)(vm->registers[opr->reg] + opr->offset);
 			break;
 		case MODE_DIRECT:
 			*oprdata = &opr->direct_value;
@@ -209,3 +205,17 @@ void advance_instruction(struct unsafevm *vm)
 	op_impls[in->opcode](vm, &data);
 }
 
+void run_program(struct genstate *s)
+{
+	printf("---executing bytecode...\n");
+	struct unsafevm vm = mkuvm();
+	size_t mo = shget(s->offset_tbl, "main");
+	vm.iptr = (struct instruction *)(s->outbuf + mo);
+	int inc = 0;
+	for (;;) {
+		advance_instruction(&vm);
+		inc++;
+		if(inc >= 6) break;
+	}
+	printf("\n---bytecode execution done!\n");
+}
