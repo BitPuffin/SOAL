@@ -15,7 +15,7 @@ struct sym_info {
 };
 
 struct sym_table { char *key; struct sym_info value; };
-void collect_module_syms(struct toplevelnode *tlnp)
+struct sym_table *collect_module_syms(struct toplevelnode *tlnp)
 {
 	struct sym_table *stbl = NULL;
 
@@ -51,13 +51,6 @@ void collect_module_syms(struct toplevelnode *tlnp)
 		}
 	}
 
-	for (int i = 0; i < shlen(stbl); i++) {
-		struct sym_info inf = stbl[i].value;
-		printf("%s is defined at %s:(%lu, %lu)\n",
-		       inf.identifier,
-		       inf.location.path,
-		       inf.location.line,
-		       inf.location.column);
-	}
+	return stbl;
 }
 	
