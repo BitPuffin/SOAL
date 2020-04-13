@@ -9,6 +9,8 @@
 #include "ints.h"
 #include "ast.h"
 #include "parse.c"
+#include "symbol_resolution.c"
+#include "typecheck.c"
 #include "bytecodegen.c"
 #include "unsafevm.c"
 
@@ -28,6 +30,7 @@ int main()
 		fclose(testfile);
 	}
 	struct toplevelnode n = parse(srcbuf, "test.soal");
+	collect_module_syms(&n);
 	struct genstate gs = emit_bytecode(&n);
 	run_program(&gs);
 }
