@@ -30,9 +30,10 @@ int main()
 		fclose(testfile);
 	}
 	struct toplevelnode n = parse(srcbuf, "test.soal");
-	collect_module_syms(&n);
-	struct genstate gs = emit_bytecode(&n);
-	run_program(&gs);
+	struct sym_table *stbl = collect_module_syms(&n);
+	collect_symbol_dependencies(stbl);
+	/* struct genstate gs = emit_bytecode(&n); */
+	/* run_program(&gs); */
 }
 
 
