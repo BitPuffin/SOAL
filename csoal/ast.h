@@ -8,6 +8,7 @@ struct identnode {
 	char *identifier;
 };
 
+/* @TODO: collect nested defs separate from exprs */
 struct procnode {
 	struct srcloc location;
 	struct identnode returntype;

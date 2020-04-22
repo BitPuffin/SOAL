@@ -13,11 +13,13 @@
 #include "typecheck.c"
 #include "bytecodegen.c"
 #include "unsafevm.c"
+#include "init.c"
 
 #define SOURCE_BUFSIZE 8192000
 char srcbuf[SOURCE_BUFSIZE];
 int main()
 {
+	init();
 	{	/* read source */
 		FILE* testfile = fopen("test.soal", "r");
 		size_t readcount = fread(srcbuf, 1, SOURCE_BUFSIZE, testfile);
@@ -31,7 +33,7 @@ int main()
 	}
 	struct toplevelnode n = parse(srcbuf, "test.soal");
 	struct sym_table *stbl = collect_module_syms(&n);
-	collect_symbol_dependencies(stbl);
+	resolve_toplevel_symbols(&n);
 	/* struct genstate gs = emit_bytecode(&n); */
 	/* run_program(&gs); */
 }

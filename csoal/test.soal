@@ -2,4 +2,4 @@
 (def b int (+ a 3))
 
 (pub def main (proc void ()
-  (print-number (+ a b))))
+	(print-number (+ a b))))
