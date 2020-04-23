@@ -55,6 +55,7 @@ enum opcode {
 	OPC_LOAD_INT,
 	OPC_PUSH,
 	OPC_POP,
+	OPC_MOV,
 };
 
 

@@ -1,5 +1,16 @@
 (def a int 1)
-(def b int (+ a 3))
+(def b int 2)
+
+(pub def do-my-stuff (proc void ()
+	(print-number b)
+	(newline)
+	(print-number (+ 1 2))
+	(newline)
+	(print-number (+ b 12))
+	(newline)
+	(print-number b)
+	(newline)))
 
 (pub def main (proc void ()
-	(print-number (+ a b))))
+	(do-my-stuff)
+	(exit)))

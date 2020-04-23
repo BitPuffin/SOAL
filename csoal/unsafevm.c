@@ -49,6 +49,11 @@ struct op_1operand_data {
 	u64 *val;
 };
 
+struct op_2operand_data {
+	u64 *a;
+	u64 *b;
+};
+
 static void push(struct unsafevm *vm, u64 v);
 void op_call(struct unsafevm *vm, struct instruction_data *id)
 {
@@ -136,6 +141,12 @@ void op_pop(struct unsafevm *vm, struct instruction_data *id)
 	*d->val = pop(vm);
 }
 
+void op_mov(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_2operand_data *d = (struct op_2operand_data *)id;
+	*d->b = *d->a;
+}
+
 typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
 
 
@@ -151,6 +162,7 @@ instruction_impl op_impls[] = {
 	NULL,
 	op_push,
 	op_pop,
+	op_mov,
 };
 
 u8 oprcounts[] = {
@@ -165,6 +177,7 @@ u8 oprcounts[] = {
 	0, /* load        */
 	1, /* push        */
 	1, /* pop         */
+	2, /* mov         */
 };
 
 
@@ -207,15 +220,10 @@ void advance_instruction(struct unsafevm *vm)
 
 void run_program(struct genstate *s)
 {
-	printf("---executing bytecode...\n");
 	struct unsafevm vm = mkuvm();
 	size_t mo = shget(s->offset_tbl, "main");
 	vm.iptr = (struct instruction *)(s->outbuf + mo);
-	int inc = 0;
 	for (;;) {
 		advance_instruction(&vm);
-		inc++;
-		if(inc >= 6) break;
 	}
-	printf("\n---bytecode execution done!\n");
 }

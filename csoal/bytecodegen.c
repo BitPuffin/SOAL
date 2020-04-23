@@ -21,8 +21,20 @@ void prntnum(i64 n)
 	fflush(stdout);
 }
 
+void _builtin_exit()
+{
+	exit(EXIT_SUCCESS);
+}
+
+void __newline()
+{
+	printf("\n");
+}
+
 struct c_table_entry c_fn_tbl[] = {
-	{ .name = "print-number", prntnum }
+	{ .name = "print-number", .fptr = prntnum },
+	{ .name = "exit", .fptr = _builtin_exit },
+	{ .name = "newline", .fptr = __newline },
 };
 
 void *getcfn(char *name)
@@ -76,11 +88,28 @@ static void emit_c_int_arg_from_reg(struct genstate *s, enum regcode r)
 	emit_instruction(s, &i);
 }
 
+static void emit_c_int_arg_direct(struct genstate *s, i64 v)
+{
+	struct instruction i = {
+		.opcode = OPC_C_INT_ARG,
+		.operands = {{ .mode = MODE_DIRECT, .direct_value = (u64) v }},
+	};
+	emit_instruction(s, &i);
+}
+
 static void emit_c_call_void_direct(struct genstate *s, u64 data)
 {
 	struct instruction i = {
 		.opcode = OPC_CALL_C_VOID,
 		.operands = { { .mode = MODE_DIRECT, .direct_value = data } }
+	};
+	emit_instruction(s, &i);
+}
+
+static void emit_c_reset(struct genstate *s)
+{
+	struct instruction i = {
+		.opcode = OPC_C_RESET,
 	};
 	emit_instruction(s, &i);
 }
@@ -92,8 +121,17 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 	if (strlen(id) == 1 && *id == '+') {
 		/* generate: add r1 r0 ; (r0 is destination) */
 		struct operand a = {}, b = {};
+		struct instruction ins;
 
 		a.mode = MODE_DIRECT;
+		a.direct_value = 0;
+		b.reg = REG_0;
+		b.mode = MODE_REG;
+		ins = (struct instruction) {
+			.opcode = OPC_MOV,
+			.operands = { a, b },
+		};
+		emit_instruction(s, &ins);
 		switch (arg->type) {
 		case EXPR_INTEGER:
 			a.direct_value = arg->value.integer.value;
@@ -107,7 +145,7 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 		}
 		b.reg = REG_0;
 		b.mode = MODE_REG;
-		struct instruction ins = {
+		ins = (struct instruction) {
 			.opcode = OPC_ADD_INT,
 			.operands = { a, b }
 		};
@@ -135,7 +173,6 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 
 		return;
 	}
-	
 }
 
 static void emit_proc(struct genstate *s, struct procnode *pnp)
@@ -152,7 +189,10 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 			exit(EXIT_FAILURE);
 		}
 		struct formnode *fnp = &expr->value.form;
-		bool call_is_c = true;
+
+		char *procname = fnp->identifier.identifier;
+		void *pptr = getcfn(procname);
+		bool call_is_c =  pptr != NULL;
 
 		if (call_is_c) {
 			struct exprnode *arg = fnp->args;
@@ -160,7 +200,16 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 			for (; arg < arg_end; arg++) {
 				switch (arg->type) {
 				case EXPR_INTEGER:
+					emit_c_int_arg_direct(s, arg->value.integer.value);
+					break;
 				case EXPR_IDENTIFIER:
+				{
+					size_t o = shget(s->offset_tbl,
+					                 arg->value.identifier.identifier);
+					emit_c_int_arg_direct(s, *(s->outbuf + o));
+					break;
+				}					
+					break;
 				case EXPR_FORM:
 					emit_form_call(s, &arg->value.form);
 					break;
@@ -175,9 +224,8 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 				emit_pop_into_reg(s, REG_0);
 				emit_c_int_arg_from_reg(s, REG_0);
 			}
-			char *procname = fnp->identifier.identifier;
-			void *pptr = getcfn(procname);
 			emit_c_call_void_direct(s, (u64)pptr);
+			emit_c_reset(s);
 			
 		} else {
 			fprintf(stderr, "not implemented, bytecode fn call\n");

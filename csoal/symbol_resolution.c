@@ -11,6 +11,8 @@ struct scope {
 	struct scope *parent;
 };
 
+struct sym_table { char *key; struct sym_info value; };
+
 struct scope *push_scope(struct scope *parent)
 {
 	struct scope *sp = malloc(sizeof(struct scope));
@@ -174,6 +176,8 @@ void init_default_scope()
 	_scope_builtin("-");
 	_scope_builtin("/");
 	_scope_builtin("print-number");
+	_scope_builtin("exit");
+	_scope_builtin("newline");
 }
 
 void symres_init()
