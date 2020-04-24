@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include <sys/stat.h>
+
 #include "stb_ds.h"
 
 #include "info.h"
@@ -15,18 +17,20 @@
 #include "unsafevm.c"
 #include "init.c"
 
-#define SOURCE_BUFSIZE 8192000
-char srcbuf[SOURCE_BUFSIZE];
 int main()
 {
+	char *srcbuf;
 	init();
 	{	/* read source */
+		struct stat st;
+		stat("test.soal", &st);
+		srcbuf = malloc(sizeof(char) * st.st_size + 1);
 		FILE* testfile = fopen("test.soal", "r");
-		size_t readcount = fread(srcbuf, 1, SOURCE_BUFSIZE, testfile);
-		if(readcount >= SOURCE_BUFSIZE-1) {
-			fprintf(stderr, "well we don't support a source file this big yet\n");
+		size_t readcount = fread(srcbuf, 1, st.st_size, testfile);
+		if(readcount != st.st_size) {
+			fprintf(stderr, "failed to read input file\n");
 			fclose(testfile); /* :( */
-			return EXIT_FAILURE;
+			exit(EXIT_FAILURE);
 		}
 		srcbuf[readcount] = '\0';
 		fclose(testfile);
