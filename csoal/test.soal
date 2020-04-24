@@ -9,8 +9,11 @@
 	(print-number (+ b 12))
 	(newline)
 	(print-number b)
-	(newline)))
+	(newline)
+	(exit)))
 
 (pub def main (proc void ()
+	(print-number 12345)
+	(newline)
 	(do-my-stuff)
 	(exit)))

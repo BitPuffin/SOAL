@@ -172,6 +172,29 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 		emit_push(s, b);
 
 		return;
+	} else {
+		size_t uo = shget(s->offset_tbl, fnp->identifier.identifier);
+		if (uo == NOT_FOUND) {
+			fprintf(stderr,
+				"Could not find procedure %s at %s:(%ld, %ld)\n",
+				fnp->identifier.identifier,
+				fnp->location.path,
+				fnp->location.line,
+				fnp->location.column);
+			exit(EXIT_FAILURE);
+		}
+		i64 o = (i64)uo;
+		i64 now = arrlen(s->outbuf);
+		i64 relative = o - now;
+		struct operand opr = {
+			.mode = MODE_DIRECT,
+			.direct_value = relative,
+		};
+		struct instruction ins = {
+			.opcode = OPC_CALL,
+			.operands = { opr },
+		};
+		emit_instruction(s, &ins);
 	}
 }
 
@@ -228,15 +251,7 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 			emit_c_reset(s);
 			
 		} else {
-			fprintf(stderr, "not implemented, bytecode fn call\n");
-			exit(EXIT_FAILURE);
-		}
-
-		size_t o = shget(s->offset_tbl, fnp->identifier.identifier);
-		if (o != NOT_FOUND) {
-			/* Bytecode proc, but we can implement that later */
-		} else {
-			/* C proc (or fail) */
+			emit_form_call(s, fnp);
 		}
 	}
 }

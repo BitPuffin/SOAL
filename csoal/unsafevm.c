@@ -60,7 +60,7 @@ void op_call(struct unsafevm *vm, struct instruction_data *id)
 	struct op_1operand_data *d = (struct op_1operand_data *) id;
 	i64 addroffs = (i64)*d->val;
 	push(vm, (u64)vm->iptr);
-	vm->iptr += addroffs;
+	vm->iptr = ((void *)vm->iptr) + addroffs;
 }
 
 void op_c_reset(struct unsafevm *vm, struct instruction_data *id)
