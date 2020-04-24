@@ -17,24 +17,31 @@
 #include "unsafevm.c"
 #include "init.c"
 
+char *read_entire_file(char *path)
+{
+	char *buf;
+	struct stat st;
+
+	stat(path, &st);
+	buf = malloc(sizeof(char) * st.st_size + 1);
+
+	FILE* f = fopen(path, "r");
+	size_t readcount = fread(buf, 1, st.st_size, f);
+	if(readcount != st.st_size) {
+		fprintf(stderr, "failed to read input file %s\n", path);
+		fclose(f); /* :( */
+		exit(EXIT_FAILURE);
+	}
+	buf[readcount] = '\0';
+	fclose(f);
+	return buf;
+}
+
 int main()
 {
-	char *srcbuf;
 	init();
-	{	/* read source */
-		struct stat st;
-		stat("test.soal", &st);
-		srcbuf = malloc(sizeof(char) * st.st_size + 1);
-		FILE* testfile = fopen("test.soal", "r");
-		size_t readcount = fread(srcbuf, 1, st.st_size, testfile);
-		if(readcount != st.st_size) {
-			fprintf(stderr, "failed to read input file\n");
-			fclose(testfile); /* :( */
-			exit(EXIT_FAILURE);
-		}
-		srcbuf[readcount] = '\0';
-		fclose(testfile);
-	}
+
+	char *srcbuf = read_entire_file("test.soal");
 	struct toplevelnode n = parse(srcbuf, "test.soal");
 	/*struct sym_table *stbl = collect_module_syms(&n);*/
 	resolve_toplevel_symbols(&n);
