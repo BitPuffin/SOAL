@@ -60,6 +60,7 @@ void op_call(struct unsafevm *vm, struct instruction_data *id)
 	struct op_1operand_data *d = (struct op_1operand_data *) id;
 	i64 addroffs = (i64)*d->val;
 	push(vm, (u64)vm->iptr);
+	printf("offset : %ld\n", addroffs);
 	vm->iptr = ((void *)vm->iptr) + addroffs;
 }
 
@@ -165,7 +166,7 @@ instruction_impl op_impls[] = {
 	op_mov,
 };
 
-u8 oprcounts[] = {
+int oprcounts[] = {
 	1, /* call        */
 	0, /* leave       */
 	0, /* ret         */

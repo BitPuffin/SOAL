@@ -194,6 +194,7 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			.opcode = OPC_CALL,
 			.operands = { opr },
 		};
+		printf("emitting call instruction at offset %lu\n", arrlen(s->outbuf));
 		emit_instruction(s, &ins);
 	}
 }
@@ -272,6 +273,7 @@ static void emit_def(struct genstate *s, struct defnode *dnp)
 	{
 		size_t offs = arrlen(s->outbuf);
 		shput(s->offset_tbl, ident, offs);
+		printf("emitting %s at offset %lu\n", ident, offs);
 	}
 
 	struct exprnode *vp = &dnp->value;

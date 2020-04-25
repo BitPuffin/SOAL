@@ -16,6 +16,7 @@
 #include "bytecodegen.c"
 #include "unsafevm.c"
 #include "init.c"
+#include "bcdisass.c"
 
 char *read_entire_file(char *path)
 {
@@ -46,6 +47,9 @@ int main()
 	/*struct sym_table *stbl = collect_module_syms(&n);*/
 	resolve_toplevel_symbols(&n);
 	struct genstate gs = emit_bytecode(&n);
+	size_t offset = shget(gs.offset_tbl, "main");
+	struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset);
+	disass_proc(mainstart, mainstart + 18);
 	run_program(&gs);
 }
 
