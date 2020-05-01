@@ -10,10 +10,12 @@ void errloc_abort(struct srcloc loc, char *msg)
 }
 
 #define errlocv_abort(loc, msg, ...)       \
+{                                          \
 	fprintf(stderr,                    \
 	        msg " at %s(%lu, %lu)\n",  \
 	        __VA_ARGS__,               \
-	        loc.path,                  \
-	        loc.line,                  \
-	        loc.column);		   \
-	exit(EXIT_FAILURE);
+	        (loc).path,		   \
+	        (loc).line,		   \
+	        (loc).column);		   \
+	exit(EXIT_FAILURE);                \
+}
