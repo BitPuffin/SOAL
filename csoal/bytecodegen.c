@@ -174,15 +174,12 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 		return;
 	} else {
 		size_t uo = shget(s->offset_tbl, fnp->identifier.identifier);
-		if (uo == NOT_FOUND) {
-			fprintf(stderr,
-				"Could not find procedure %s at %s:(%ld, %ld)\n",
-				fnp->identifier.identifier,
-				fnp->location.path,
-				fnp->location.line,
-				fnp->location.column);
-			exit(EXIT_FAILURE);
-		}
+
+		if (uo == NOT_FOUND)
+			errlocv_abort(fnp->location,
+			              "Could not find procedure %s",
+			              fnp->identifier.identifier);
+
 		i64 o = (i64)uo;
 		i64 now = arrlen(s->outbuf);
 		i64 relative = o - now;
@@ -205,7 +202,7 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 		struct	exprnode *expr = &pnp->exprs[i];
 
 		if (expr->type != EXPR_FORM)
-			errloc_abort("Expected form", expr->location);
+			errloc_abort(expr->location, "Expected form");
 
 		struct formnode *fnp = &expr->value.form;
 
@@ -233,12 +230,7 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 					emit_form_call(s, &arg->value.form);
 					break;
 				default:
-					fprintf(stderr,
-						"Unexpected expression type at %s:(%ld, %ld)\n",
-						arg->location.path,
-						arg->location.line,
-						arg->location.column);
-					exit(EXIT_FAILURE);
+					errloc_abort(arg->location, "Unexpected expression type");
 				}
 				emit_pop_into_reg(s, REG_0);
 				emit_c_int_arg_from_reg(s, REG_0);

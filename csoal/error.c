@@ -1,4 +1,4 @@
-void errloc_abort(char *msg, struct srcloc loc)
+void errloc_abort(struct srcloc loc, char *msg)
 {
 	fprintf(stderr,
 	        "%s at %s(%lu, %lu)\n",
