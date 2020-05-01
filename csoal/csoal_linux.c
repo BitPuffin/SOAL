@@ -8,6 +8,7 @@
 #include "stb_ds.h"
 
 #include "info.h"
+#include "error.c"
 #include "ints.h"
 #include "ast.h"
 #include "parse.c"
@@ -47,7 +48,7 @@ int main()
 	/*struct sym_table *stbl = collect_module_syms(&n);*/
 	resolve_toplevel_symbols(&n);
 	struct genstate gs = emit_bytecode(&n);
-	size_t offset = shget(gs.offset_tbl, "main");
+	size_t offset = shget(gs.offset_tbl, "do-my-stuff");
 	struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset);
 	disass_proc(mainstart, mainstart + 18);
 	run_program(&gs);

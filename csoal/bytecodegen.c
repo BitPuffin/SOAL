@@ -201,17 +201,12 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 
 static void emit_proc(struct genstate *s, struct procnode *pnp)
 {
-	struct	exprnode *expr = pnp->exprs;
-	struct	exprnode *expr_end = expr + arrlen(expr);
-	for (; expr < expr_end; ++expr) {
-		if (expr->type != EXPR_FORM) {
-			fprintf(stderr,
-			        "Expected form at %s:(%ld, %ld)\n",
-			        expr->location.path,
-			        expr->location.line,
-			        expr->location.column);
-			exit(EXIT_FAILURE);
-		}
+	for (int i = 0; i < arrlen(pnp->exprs); ++i) {
+		struct	exprnode *expr = &pnp->exprs[i];
+
+		if (expr->type != EXPR_FORM)
+			errloc_abort("Expected form", expr->location);
+
 		struct formnode *fnp = &expr->value.form;
 
 		char *procname = fnp->identifier.identifier;
