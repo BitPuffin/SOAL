@@ -1,3 +1,3 @@
 #!/bin/sh
 
-gcc -g csoal_linux.c -ldyncall_s
+gcc -g -ocsoal csoal_linux.c -ldyncall_s

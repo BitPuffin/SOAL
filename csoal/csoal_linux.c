@@ -48,9 +48,9 @@ int main()
 	/*struct sym_table *stbl = collect_module_syms(&n);*/
 	resolve_toplevel_symbols(&n);
 	struct genstate gs = emit_bytecode(&n);
-	size_t offset = shget(gs.offset_tbl, "do-my-stuff");
-	struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset);
-	disass_proc(mainstart, mainstart + 18);
+	/* size_t offset = shget(gs.offset_tbl, "do-my-stuff"); */
+	/* struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset); */
+	/* disass_proc(mainstart, mainstart + 42); */
 	run_program(&gs);
 }
 

@@ -8,8 +8,6 @@
 
 #define NOT_FOUND SIZE_MAX
 
-
-
 struct c_table_entry {
 	char *name;
 	void *fptr;
@@ -191,7 +189,6 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			.opcode = OPC_CALL,
 			.operands = { opr },
 		};
-		printf("emitting call instruction at offset %lu\n", arrlen(s->outbuf));
 		emit_instruction(s, &ins);
 	}
 }
@@ -228,12 +225,12 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 					break;
 				case EXPR_FORM:
 					emit_form_call(s, &arg->value.form);
+					emit_pop_into_reg(s, REG_0);
+					emit_c_int_arg_from_reg(s, REG_0);
 					break;
 				default:
 					errloc_abort(arg->location, "Unexpected expression type");
 				}
-				emit_pop_into_reg(s, REG_0);
-				emit_c_int_arg_from_reg(s, REG_0);
 			}
 			emit_c_call_void_direct(s, (u64)pptr);
 			emit_c_reset(s);
@@ -260,7 +257,7 @@ static void emit_def(struct genstate *s, struct defnode *dnp)
 	{
 		size_t offs = arrlen(s->outbuf);
 		shput(s->offset_tbl, ident, offs);
-		printf("emitting %s at offset %lu\n", ident, offs);
+		/* printf("emitting %s at offset %lu\n", ident, offs); */
 	}
 
 	struct exprnode *vp = &dnp->value;
