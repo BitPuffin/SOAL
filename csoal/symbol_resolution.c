@@ -78,13 +78,9 @@ void resolve_proc_syms(struct scope *scp, struct procnode *pnp)
 void resolve_form_syms(struct scope *sp, struct formnode *fnp)
 {
 	if (lookup_symbol(sp, fnp->identifier.identifier) == NULL) {
-		fprintf(stderr,
-			"Could not locate reference to %s at %s:(%lu, %lu)\n",
-			fnp->identifier.identifier,
-			fnp->location.path,
-			fnp->location.line,
-			fnp->location.column);
-		exit(EXIT_FAILURE);
+		errlocv_abort(fnp->location,
+		              "Could not locate reference to %s",
+		              fnp->identifier.identifier);
 	}
 
 	for (int i = 0; i < arrlen(fnp->args); ++i) {
@@ -92,13 +88,9 @@ void resolve_form_syms(struct scope *sp, struct formnode *fnp)
 		switch (enp->type) {
 		case EXPR_IDENTIFIER:
 			if (lookup_symbol(sp, enp->value.identifier.identifier) == NULL) {
-				fprintf(stderr,
-					"Could not locate reference to %s at %s:(%lu, %lu)\n",
-					enp->value.identifier.identifier,
-					enp->location.path,
-					enp->location.line,
-					enp->location.column);
-				exit(EXIT_FAILURE);
+				errlocv_abort(enp->location,
+				              "could not locate reference to %s",
+				              enp->value.identifier.identifier);
 			}
 			break;
 		case EXPR_FORM:
@@ -116,13 +108,9 @@ void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 		struct defnode *dnp = &tlnp->definitions[i];
 
 		if (scope_has_same_symbol(scope, dnp->identifier.identifier)) {
-			fprintf(stderr,
-			        "Duplicate definition of %s at %s:(%lu, %lu)\n",
-			        dnp->identifier.identifier,
-			        dnp->location.path,
-			        dnp->location.line,
-			        dnp->location.column);
-			exit(EXIT_FAILURE);
+			errlocv_abort(dnp->location,
+			              "Duplicate definition of %s",
+			              dnp->identifier.identifier);
 		}
 
 		scope_insert_def(scope, dnp);
@@ -135,13 +123,9 @@ void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 		switch (enp->type) {
 		case EXPR_IDENTIFIER:
 			if (lookup_symbol(scope, enp->value.identifier.identifier) == NULL) {
-				fprintf(stderr,
-					"Could not locate reference to %s at %s:(%lu, %lu)\n",
-				        enp->value.identifier.identifier,
-				        enp->value.identifier.location.path,
-				        enp->value.identifier.location.line,
-				        enp->value.identifier.location.column);
-				exit(EXIT_FAILURE);
+				errlocv_abort(enp->location,
+				              "Could not locate reference to %s",
+				              enp->value.identifier.identifier);
 			}
 			break;
 		case EXPR_PROC:
