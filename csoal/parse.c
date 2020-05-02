@@ -230,24 +230,16 @@ bool consume_paren(struct parser_state *ps, char par) {
 			char lastpar = arrlast(*pstack);
 			if(lastpar != matching) {
 				struct srcloc loc = ps->lxstate.location;
-				fprintf(stderr,
-					"Mismatching parenthesis, expected %c, got %c at %s:%lu,%lu\n",
-					matching,
-					lastpar,
-					loc.path,
-					loc.line,
-					loc.column);
-				exit(EXIT_FAILURE);
+				errlocv_abort(loc,
+				              "Mismatching parenthesis, expected %c, got %c",
+				              matching,
+				              lastpar);
 			}
 			size_t len = arrlenu(*pstack);
 			if(len == 0) {
 				struct srcloc loc = ps->lxstate.location;
-				fprintf(stderr,
-					"No matching opening parenthesis found at%s:%lu,%lu\n",
-					loc.path,
-					loc.line,
-					loc.column);
-				exit(EXIT_FAILURE);
+				errloc_abort(loc,
+					     "No matching opening parenthesis found");
 			}
 			arrdel(*pstack, len - 1);
 		} else {
@@ -330,12 +322,7 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 
 	if (!consume_paren(ps, ')')) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "Expected closing parenthesis at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Expected closing parenthesis");
 	}
 
 	return true;
@@ -362,12 +349,7 @@ bool consume_form(struct parser_state *ps, struct formnode *form)
 
 	if (!consume_paren(ps, ')')) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "Expected closing parenthesis at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Expected closing parenthesis at %s:%lu,%lu\n");
 	}
 
 	return true;
@@ -410,34 +392,19 @@ bool consume_def(struct parser_state *ps, struct defnode *out)
 
 	if(!consume_iden(ps, &out->identifier)) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "Expected identifier at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Expected identifier");
 	}
 
 	out->explicit_type = consume_iden(ps, &out->type);
 
 	if(!consume_exprnode(ps, &out->value)) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "Definition requires value expression at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Definition requires value expression");
 	}
 
 	if(!consume_paren(ps, ')')) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "expected closing parenthesis at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Expected closing parenthesis");
 	}
 
 	return true;
@@ -459,12 +426,7 @@ struct toplevelnode parse_toplevel(struct parser_state *ps) {
 	eat_token(&ps->lxstate);
 	if (ps->lxstate.mode != LX_MODE_DONE) {
 		struct srcloc loc = ps->lxstate.location;
-		fprintf(stderr,
-		        "unexpected toplevel expression at %s:%lu,%lu\n",
-		        loc.path,
-		        loc.line,
-		        loc.column);
-		exit(EXIT_FAILURE);
+		errloc_abort(loc, "Unexpected toplevel expression");
 	}
 	return node;
 }
