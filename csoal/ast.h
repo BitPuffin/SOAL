@@ -9,6 +9,7 @@ struct identnode {
 };
 
 struct blocknode {
+	struct srcloc location;
 	struct exprnode *exprs;
 	struct defnode *defs;
 };

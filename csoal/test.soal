@@ -21,6 +21,9 @@
 (pub def main (proc void ()
 	(print-number 12345)
 	(newline)
+	{
+		(def y int 999)
+	}
 	(do-my-stuff)
 	(def x int 2)
 	(exit)))

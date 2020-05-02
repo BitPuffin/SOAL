@@ -364,6 +364,34 @@ bool consume_form(struct parser_state *ps, struct formnode *form)
 	return true;
 }
 
+bool consume_exprnode(struct parser_state *ps, struct exprnode *out);
+bool consume_block(struct parser_state *ps, struct blocknode *bnp)
+{
+	memset(bnp, 0, sizeof(struct blocknode));
+	bnp->location = ps->lxstate.location;
+
+	if (!consume_paren(ps, '{'))
+		return false;
+
+	struct defnode def;
+	struct exprnode expr;
+
+	for (;;) {
+		if (consume_def(ps, &def)) {
+			arrput(bnp->defs, def);
+		} else if (consume_exprnode(ps, &expr)) {
+			arrput(bnp->exprs, expr);
+		} else {
+			break;
+		}
+	}
+
+	if (!consume_paren(ps, '}'))
+		return false;
+
+	return true;
+}
+
 bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 {
 	memset(out, 0, sizeof(struct exprnode));
@@ -379,6 +407,9 @@ bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 		return true;
 	} else if (consume_form(ps, &out->value.form)) {
 		out->type = EXPR_FORM;
+		return true;
+	} else if (consume_block(ps, &out->value.block)) {
+		out->type = EXPR_BLOCK;
 		return true;
 	}
 	return false;
