@@ -8,12 +8,17 @@ struct identnode {
 	char *identifier;
 };
 
+struct blocknode {
+	struct exprnode *exprs;
+	struct defnode *defs;
+};
+
 /* @TODO: collect nested defs separate from exprs */
 struct procnode {
 	struct srcloc location;
 	struct identnode returntype;
 	struct argnode *args;
-	struct exprnode *exprs;
+	struct blocknode block;
 };
 
 struct formnode {
@@ -27,6 +32,7 @@ enum expr_type {
 	EXPR_IDENTIFIER,
 	EXPR_PROC,
 	EXPR_FORM,
+	EXPR_BLOCK,
 };
 
 struct exprnode {
@@ -37,6 +43,7 @@ struct exprnode {
 		struct identnode identifier;
 		struct procnode proc;
 		struct formnode form;
+		struct blocknode block;
 	} value;
 };
 

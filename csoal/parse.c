@@ -314,10 +314,10 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 		/* require at least one expr in the body */
 		goto nope;
 	}
-	arrput(proc->exprs, expr);
+	arrput(proc->block.exprs, expr);
 
 	while(consume_exprnode(ps, &expr)) {
-		arrput(proc->exprs, expr);
+		arrput(proc->block.exprs, expr);
 	}
 
 	if (!consume_paren(ps, ')')) {

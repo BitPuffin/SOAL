@@ -66,8 +66,8 @@ void resolve_proc_syms(struct scope *scp, struct procnode *pnp)
 
 	/* @TODO: add all the proc level defs to the scope */
 
-	for (int i = 0; i < arrlen(pnp->exprs); ++i) {
-		struct exprnode *enp = &pnp->exprs[i];
+	for (int i = 0; i < arrlen(pnp->block.exprs); ++i) {
+		struct exprnode *enp = &pnp->block.exprs[i];
 
 		if (enp->type == EXPR_FORM) {
 			resolve_form_syms(sp, &enp->value.form);
