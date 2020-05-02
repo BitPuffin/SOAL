@@ -293,6 +293,8 @@ bool consume_paramlist(struct parser_state *ps, struct argnode **out)
 	return consume_paren(ps, '(') && consume_paren(ps, ')');
 }
 
+bool consume_def(struct parser_state *ps, struct defnode *out);
+
 bool consume_exprnode(struct parser_state *, struct exprnode *);
 bool consume_proc(struct parser_state *ps, struct procnode *proc)
 {
@@ -316,8 +318,15 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 	}
 	arrput(proc->block.exprs, expr);
 
-	while(consume_exprnode(ps, &expr)) {
-		arrput(proc->block.exprs, expr);
+	struct defnode def;
+
+	for (;;) {
+		if (consume_def(ps, &def))
+			arrput(proc->block.defs, def);
+		else if (consume_exprnode(ps, &expr))
+			arrput(proc->block.exprs, expr);
+		else
+			break;
 	}
 
 	if (!consume_paren(ps, ')')) {

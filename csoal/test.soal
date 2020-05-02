@@ -22,4 +22,5 @@
 	(print-number 12345)
 	(newline)
 	(do-my-stuff)
+	(def x int 2)
 	(exit)))
