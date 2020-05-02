@@ -1,5 +1,5 @@
 struct srcloc {
 	char const* path;
-	size_t line;
-	size_t column;
+	unsigned long line;
+	unsigned long column;
 };

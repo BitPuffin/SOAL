@@ -2,8 +2,8 @@
 
 #include <dyncall.h>
 
-struct unsafevm mkuvm();
-struct unsafevm mkuvm_stacksz(size_t sz);
+struct unsafevm *mkuvm();
+struct unsafevm *mkuvm_stacksz(size_t sz);
 
 struct unsafevm {
 	u8 *stack;
@@ -14,20 +14,27 @@ struct unsafevm {
 	DCCallVM *dyncall;
 };
 
-struct unsafevm mkuvm()
+struct unsafevm *mkuvm()
 {
 	return mkuvm_stacksz(1024*1024);
 }
 
-struct unsafevm mkuvm_stacksz(size_t sz)
+struct unsafevm *mkuvm_stacksz(size_t sz)
 {
-	struct unsafevm vm = {};
-	vm.stack = malloc(sz);
-	vm.registers[REG_SBP] = (u64)(vm.stack + sz);
-	vm.registers[REG_SP]  = vm.registers[REG_SBP];
-	vm.dyncall = dcNewCallVM(1024);
-	dcMode(vm.dyncall, DC_CALL_C_DEFAULT);
-	dcReset(vm.dyncall);
+	struct unsafevm *vm = malloc(sizeof(struct unsafevm));
+	assert(vm != NULL);
+
+	vm->stack = malloc(sz);
+	assert(vm->stack != NULL);
+
+	vm->registers[REG_SBP] = (u64)(vm->stack + sz);
+	vm->registers[REG_SP]  = vm->registers[REG_SBP];
+
+	vm->dyncall = dcNewCallVM(1024);
+	assert(vm->dyncall != NULL);
+
+	dcMode(vm->dyncall, DC_CALL_C_DEFAULT);
+	dcReset(vm->dyncall);
 	return vm;
 }
 
@@ -220,10 +227,10 @@ void advance_instruction(struct unsafevm *vm)
 
 void run_program(struct genstate *s)
 {
-	struct unsafevm vm = mkuvm();
+	struct unsafevm *vm = mkuvm();
 	size_t mo = shget(s->offset_tbl, "main");
-	vm.iptr = (struct instruction *)(s->outbuf + mo);
+	vm->iptr = (struct instruction *)(s->outbuf + mo);
 	for (;;) {
-		advance_instruction(&vm);
+		advance_instruction(vm);
 	}
 }

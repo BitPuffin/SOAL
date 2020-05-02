@@ -16,6 +16,7 @@ struct sym_table { char *key; struct sym_info value; };
 struct scope *push_scope(struct scope *parent)
 {
 	struct scope *sp = malloc(sizeof(struct scope));
+	assert(sp != NULL);
 	memset(sp, 0, sizeof(struct scope));
 
 	sp->parent = parent;
@@ -154,6 +155,7 @@ void _scope_builtin(char *name)
 void init_default_scope()
 {
 	_default_scope = malloc(sizeof(struct scope));
+	assert(_default_scope != NULL);
 	memset(_default_scope, 0, sizeof(struct scope));
 
 	_scope_builtin("+");

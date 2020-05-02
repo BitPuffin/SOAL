@@ -14,7 +14,7 @@ bool is_terminator(char c)
 /* return pointer to terminator or null if none was found */
 char const* find_terminator(char const* str)
 {
-	for(char const* it = str; *it != '\0'; ++it) {
+	for (char const* it = str; *it != '\0'; ++it) {
 		if(is_terminator(*it))
 			return it;
 	}

@@ -7,9 +7,9 @@
 
 #include "stb_ds.h"
 
+#include "ints.h"
 #include "info.h"
 #include "error.c"
-#include "ints.h"
 #include "ast.h"
 #include "parse.c"
 #include "symbol_resolution.c"
@@ -26,6 +26,7 @@ char *read_entire_file(char *path)
 
 	stat(path, &st);
 	buf = malloc(sizeof(char) * st.st_size + 1);
+	assert(buf != NULL);
 
 	FILE* f = fopen(path, "r");
 	size_t readcount = fread(buf, 1, st.st_size, f);
