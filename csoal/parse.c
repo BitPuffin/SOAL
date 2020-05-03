@@ -299,6 +299,7 @@ bool consume_exprnode(struct parser_state *, struct exprnode *);
 bool consume_proc(struct parser_state *ps, struct procnode *proc)
 {
 	struct parser_state before = *ps;
+	size_t beforestack = arrlen(ps->parenstack);
 	memset(proc, 0, sizeof(struct procnode));
 	proc->location = ps->lxstate.location;
 
@@ -339,6 +340,7 @@ bool consume_proc(struct parser_state *ps, struct procnode *proc)
 nope:
 	before.parenstack = ps->parenstack;
 	*ps = before;
+	arrsetlen(ps->parenstack, beforestack);
 	return false;
 }
 
@@ -418,6 +420,7 @@ bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 bool consume_def(struct parser_state *ps, struct defnode *out)
 {
 	struct parser_state before = *ps;
+	size_t beforestack = arrlen(ps->parenstack);
 	memset(out, 0, sizeof(struct defnode));
 	out->location = ps->lxstate.location;
 
@@ -451,6 +454,7 @@ bool consume_def(struct parser_state *ps, struct defnode *out)
 nope:
 	before.parenstack = ps->parenstack;
 	*ps = before;
+	arrsetlen(ps->parenstack, beforestack);
 	return false;
 }
 

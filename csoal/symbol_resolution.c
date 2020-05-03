@@ -61,19 +61,29 @@ bool scope_has_same_symbol(struct scope *sp, char *sym)
 }
 
 void resolve_form_syms(struct scope *sp, struct formnode *fnp);
-void resolve_proc_syms(struct scope *scp, struct procnode *pnp)
+
+void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 {
-	struct scope *sp = push_scope(scp);
+	struct scope *nsp = push_scope(sp);
 
-	/* @TODO: add all the proc level defs to the scope */
+	for (int i = 0; i < arrlen(bnp->defs); ++i) {
+		scope_insert_def(nsp, &bnp->defs[i]);
+	}
 
-	for (int i = 0; i < arrlen(pnp->block.exprs); ++i) {
-		struct exprnode *enp = &pnp->block.exprs[i];
+	for (int i = 0; i < arrlen(bnp->exprs); ++i) {
+		struct exprnode *enp = &bnp->exprs[i];
 
 		if (enp->type == EXPR_FORM) {
-			resolve_form_syms(sp, &enp->value.form);
+			resolve_form_syms(nsp, &enp->value.form);
+		} else if (enp->type == EXPR_BLOCK) {
+			resolve_block_syms(nsp, &enp->value.block);
 		}
 	}
+}
+
+void resolve_proc_syms(struct scope *sp, struct procnode *pnp)
+{
+	resolve_block_syms(sp, &pnp->block);
 }
 
 void resolve_form_syms(struct scope *sp, struct formnode *fnp)

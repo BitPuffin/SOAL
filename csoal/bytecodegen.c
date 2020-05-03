@@ -115,8 +115,42 @@ static void emit_c_reset(struct genstate *s)
 static void emit_form_call(struct genstate *s, struct formnode *fnp)
 {
 	char *id = fnp->identifier.identifier;
-	struct exprnode *arg = fnp->args;
-	if (strlen(id) == 1 && *id == '+') {
+	void *pptr = getcfn(id);
+	bool call_is_c =  pptr != NULL;
+
+	if (call_is_c) {
+		struct exprnode *arg = fnp->args;
+		struct exprnode *arg_end = arg + arrlen(arg);
+		for (; arg < arg_end; arg++) {
+			switch (arg->type) {
+			case EXPR_INTEGER:
+				emit_c_int_arg_direct(s, arg->value.integer.value);
+				break;
+			case EXPR_IDENTIFIER:
+			{
+				size_t o = shget(s->offset_tbl,
+						 arg->value.identifier.identifier);
+
+				if (o == NOT_FOUND)
+					errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
+
+				emit_c_int_arg_direct(s, *(s->outbuf + o));
+				break;
+			}					
+			break;
+			case EXPR_FORM:
+				emit_form_call(s, &arg->value.form);
+				emit_pop_into_reg(s, REG_0);
+				emit_c_int_arg_from_reg(s, REG_0);
+				break;
+			default:
+				errloc_abort(arg->location, "Unexpected expression type");
+			}
+		}
+		emit_c_call_void_direct(s, (u64)pptr);
+		emit_c_reset(s);
+	} else if (strlen(id) == 1 && *id == '+') {
+		struct exprnode *arg = fnp->args;
 		/* generate: add r1 r0 ; (r0 is destination) */
 		struct operand a = {}, b = {};
 		struct instruction ins;
@@ -137,6 +171,10 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 		case EXPR_IDENTIFIER:
 		{
 			size_t o = shget(s->offset_tbl, arg->value.identifier.identifier);
+
+			if (o == NOT_FOUND)
+				errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
+
 			a.direct_value = *(s->outbuf + o);
 			break;
 		}
@@ -175,8 +213,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 
 		if (uo == NOT_FOUND)
 			errlocv_abort(fnp->location,
-			              "Could not find procedure %s",
-			              fnp->identifier.identifier);
+				      "Could not find procedure %s",
+				      fnp->identifier.identifier);
 
 		i64 o = (i64)uo;
 		i64 now = arrlen(s->outbuf);
@@ -193,50 +231,39 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 	}
 }
 
+static void emit_block(struct genstate *s, struct blocknode *bnp)
+{
+	for (int i = 0; i < arrlen(bnp->exprs); ++i) {
+		struct exprnode *expr = &bnp->exprs[i];
+
+		switch (expr->type) {
+		case EXPR_FORM:
+			emit_form_call(s, &expr->value.form);
+			break;
+		case EXPR_BLOCK:
+			emit_block(s, &expr->value.block);
+			break;
+		default:
+			errloc_abort(expr->location, "Expected form or block");
+		}
+	}
+
+}
+
 static void emit_proc(struct genstate *s, struct procnode *pnp)
 {
 	for (int i = 0; i < arrlen(pnp->block.exprs); ++i) {
 		struct	exprnode *expr = &pnp->block.exprs[i];
 
-		if (expr->type != EXPR_FORM)
-			errloc_abort(expr->location, "Expected form");
-
-		struct formnode *fnp = &expr->value.form;
-
-		char *procname = fnp->identifier.identifier;
-		void *pptr = getcfn(procname);
-		bool call_is_c =  pptr != NULL;
-
-		if (call_is_c) {
-			struct exprnode *arg = fnp->args;
-			struct exprnode *arg_end = arg + arrlen(arg);
-			for (; arg < arg_end; arg++) {
-				switch (arg->type) {
-				case EXPR_INTEGER:
-					emit_c_int_arg_direct(s, arg->value.integer.value);
-					break;
-				case EXPR_IDENTIFIER:
-				{
-					size_t o = shget(s->offset_tbl,
-					                 arg->value.identifier.identifier);
-					emit_c_int_arg_direct(s, *(s->outbuf + o));
-					break;
-				}					
-					break;
-				case EXPR_FORM:
-					emit_form_call(s, &arg->value.form);
-					emit_pop_into_reg(s, REG_0);
-					emit_c_int_arg_from_reg(s, REG_0);
-					break;
-				default:
-					errloc_abort(arg->location, "Unexpected expression type");
-				}
-			}
-			emit_c_call_void_direct(s, (u64)pptr);
-			emit_c_reset(s);
-			
-		} else {
-			emit_form_call(s, fnp);
+		switch (expr->type) {
+		case EXPR_FORM:
+			emit_form_call(s, &expr->value.form);
+			break;
+		case EXPR_BLOCK:
+			emit_block(s, &expr->value.block);
+			break;
+		default:
+			errloc_abort(expr->location, "Expected form or block");
 		}
 	}
 }
