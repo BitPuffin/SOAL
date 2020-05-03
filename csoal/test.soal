@@ -23,6 +23,11 @@
 	(newline)
 	{
 		(def y int 999)
+		(def bla int 1001)
+		(print-number bla)
+		(newline)
+		(print-number (+ bla y))
+		(newline)
 	}
 	(do-my-stuff)
 	(def x int 2)

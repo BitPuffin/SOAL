@@ -134,7 +134,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 				if (o == NOT_FOUND)
 					errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
 
-				emit_c_int_arg_direct(s, *(s->outbuf + o));
+				i64 *iv = (i64 *)(s->outbuf+o);
+				emit_c_int_arg_direct(s, *iv);
 				break;
 			}					
 			break;
@@ -175,7 +176,7 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			if (o == NOT_FOUND)
 				errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
 
-			a.direct_value = *(s->outbuf + o);
+			a.direct_value = *(i64 *)(s->outbuf + o);
 			break;
 		}
 		}
@@ -195,7 +196,7 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 		case EXPR_IDENTIFIER:
 		{
 			size_t o = shget(s->offset_tbl, arg->value.identifier.identifier);
-			a.direct_value = *(s->outbuf + o);
+			a.direct_value = *(i64 *)(s->outbuf + o);
 			break;
 		}
 		}
@@ -250,6 +251,22 @@ static void emit_block(struct genstate *s, struct blocknode *bnp)
 
 }
 
+static void emit_def(struct genstate *s, struct defnode *dnp);
+
+static void emit_block_constants(struct genstate *s, struct blocknode *np)
+{
+	for (int i = 0; i < arrlen(np->defs); ++i) {
+		emit_def(s, &np->defs[i]);
+	}
+
+	for (int i = 0; i < arrlen(np->exprs); ++i) {
+		struct exprnode *ep = &np->exprs[i];
+		if (ep->type == EXPR_BLOCK)
+			emit_block_constants(s, &ep->value.block);
+	}
+
+}
+
 static void emit_proc(struct genstate *s, struct procnode *pnp)
 {
 	for (int i = 0; i < arrlen(pnp->block.exprs); ++i) {
@@ -277,16 +294,24 @@ static void emit_raw_data(struct genstate *s, size_t sz, void *d)
 	}
 }
 
+static void emit_integer(struct genstate *s, i64 integer)
+{
+	emit_raw_data(s, sizeof(integer), &integer);
+	/* u8 *bend = (u8 *)&integer; */
+	/* u8 *b = (u8 *)((&integer)+1); */
+	/* for (;;) { */
+	/* 	b--; */
+	/* 	arrput(s->outbuf, *b); */
+	/* 	if (b == bend) */
+	/* 		break; */
+	/* } */
+}
+
 static void emit_def(struct genstate *s, struct defnode *dnp)
 {
-	char	*ident = dnp->identifier.identifier;
+	char *ident = dnp->identifier.identifier;
 
-	{
-		size_t offs = arrlen(s->outbuf);
-		shput(s->offset_tbl, ident, offs);
-		/* printf("emitting %s at offset %lu\n", ident, offs); */
-	}
-
+	size_t offs;
 	struct exprnode *vp = &dnp->value;
 	struct intnode *inp;
 	struct procnode *pnp;
@@ -295,11 +320,19 @@ static void emit_def(struct genstate *s, struct defnode *dnp)
 
 	switch (vp->type) {
 	case EXPR_INTEGER:
+		offs = arrlen(s->outbuf);
+		shput(s->offset_tbl, ident, offs);
+		/* printf("emitting %s at offset %lu\n", ident, offs); */
 		inp = &vp->value.integer;
-		emit_raw_data(s, sizeof(inp->value), &inp->value);
+		/* emit_raw_data(s, sizeof(inp->value), &inp->value); */
+		emit_integer(s, inp->value);
 		break;
 	case EXPR_PROC:
 		pnp = &vp->value.proc;
+		emit_block_constants(s, &pnp->block);
+		offs = arrlen(s->outbuf);
+		shput(s->offset_tbl, ident, offs);
+		/* printf("emitting %s at offset %lu\n", ident, offs); */
 		emit_proc(s, pnp);
 		break;
 	}
