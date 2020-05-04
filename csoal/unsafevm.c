@@ -62,12 +62,21 @@ struct op_2operand_data {
 };
 
 static void push(struct unsafevm *vm, u64 v);
+
 void op_call(struct unsafevm *vm, struct instruction_data *id)
 {
 	struct op_1operand_data *d = (struct op_1operand_data *) id;
 	i64 addroffs = (i64)*d->val;
 	push(vm, (u64)vm->iptr);
 	vm->iptr = ((void *)(vm->iptr - 1)) + addroffs;
+}
+
+static u64 pop(struct unsafevm *vm);
+static void op_ret(struct unsafevm *vm, struct instruction_data *id)
+{
+	u64 i = pop(vm);
+	struct instruction *newiptr = (struct instruction *)i;
+	vm->iptr = newiptr;
 }
 
 void op_c_reset(struct unsafevm *vm, struct instruction_data *id)
@@ -160,7 +169,7 @@ typedef void (*instruction_impl)(struct unsafevm *, struct instruction_data *);
 instruction_impl op_impls[] = {
 	op_call,
 	NULL,
-	NULL,
+	op_ret,
 	op_c_reset,
 	op_call_c_void,
 	op_call_c_int,

@@ -72,6 +72,14 @@ static void emit_pop(struct genstate *s, struct operand o)
 	emit_instruction(s, &i);
 }
 
+static void emit_ret(struct genstate *s)
+{
+	struct instruction i = {
+		.opcode = OPC_RET
+	};
+	emit_instruction(s, &i);
+}
+
 static void emit_pop_into_reg(struct genstate *s, enum regcode r)
 {
 	emit_pop(s, (struct operand) { .mode = MODE_REG, .reg = r });
@@ -283,6 +291,7 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 			errloc_abort(expr->location, "Expected form or block");
 		}
 	}
+	emit_ret(s);
 }
 
 static void emit_raw_data(struct genstate *s, size_t sz, void *d)
