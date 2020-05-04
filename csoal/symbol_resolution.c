@@ -1,17 +1,31 @@
-typedef size_t sym_id;
+typedef size_t decl_id;
+static decl_id __decl_id_counter;
 
-struct sym_info {
+decl_id gen_decl_id()
+{
+	return __decl_id_counter++;
+}
+
+struct decl_info {
+	decl_id id;
 	struct srcloc location;
 	char *identifier;
 	struct defnode *defnode;
+	struct scope *scope;
 };
 
 struct scope {
+	struct decl_table *decl_tbl;
 	struct sym_table *sym_tbl;
 	struct scope *parent;
 };
 
-struct sym_table { char *key; struct sym_info value; };
+struct sym_table { char *key; struct decl_info value; };
+struct decl_table { decl_id key; struct decl_info value; };
+
+/* get the scope of some AST node, blocks and toplevels */
+struct scope_table { void *key; struct scope *value; };
+struct scope_table *scope_tbl;
 
 struct scope *push_scope(struct scope *parent)
 {
@@ -32,18 +46,22 @@ struct scope *pop_scope(struct scope *sp)
 
 void scope_insert_def(struct scope *sp, struct defnode *dnp)
 {
-	struct sym_info inf = {
+	struct decl_info inf = {
+		.id = gen_decl_id(),
 		.location = dnp->location,
 		.identifier = dnp->identifier.identifier,
 		.defnode = dnp,
+		.scope = sp,
 	};
+	/* printf("inserting %s with id %lu into scope\n", inf.identifier, inf.id); */
 	shput(sp->sym_tbl, inf.identifier, inf);
+	hmput(sp->decl_tbl, inf.id, inf);
 }
 
-struct sym_info *lookup_symbol(struct scope *sp, char *dep)
+struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 {
 	while(sp != NULL) {
-		struct sym_info *info = &shget(sp->sym_tbl, dep);
+		struct decl_info *info = &shget(sp->sym_tbl, dep);
 		if(info->identifier != NULL) {
 			return info;
 		} else {
@@ -65,6 +83,7 @@ void resolve_form_syms(struct scope *sp, struct formnode *fnp);
 void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 {
 	struct scope *nsp = push_scope(sp);
+	hmput(scope_tbl, bnp, nsp);
 
 	for (int i = 0; i < arrlen(bnp->defs); ++i) {
 		scope_insert_def(nsp, &bnp->defs[i]);
@@ -114,6 +133,7 @@ void resolve_form_syms(struct scope *sp, struct formnode *fnp)
 void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 {
 	struct scope *scope = push_scope(_default_scope);
+	hmput(scope_tbl, tlnp, scope);
 
 	for (int i = 0; i < arrlen(tlnp->definitions); ++i) {
 		struct defnode *dnp = &tlnp->definitions[i];
@@ -153,11 +173,13 @@ void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 
 void _scope_builtin(char *name)
 {
-	struct sym_info info = {};
-	info = (struct sym_info) {
+	struct decl_info info = {};
+	info = (struct decl_info) {
+		.id = gen_decl_id(),
 		.location = { .path = "<builtin>" },
 		.identifier = name,
-		.defnode = NULL
+		.defnode = NULL,
+		
 	};
 	shput(_default_scope->sym_tbl, name, info);
 }

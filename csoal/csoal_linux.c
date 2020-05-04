@@ -52,7 +52,14 @@ int main()
 	/* size_t offset = shget(gs.offset_tbl, "do-my-stuff"); */
 	/* struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset); */
 	/* disass_proc(mainstart, mainstart + 42); */
-	run_program(&gs);
+	struct scope *scope = hmget(scope_tbl, &n);
+	size_t main_offset = hmget(gs.offset_tbl, lookup_symbol(scope, "main")->id);
+	if (main_offset == NOT_FOUND) {
+		fprintf(stderr, "Could not run program (main could not be located)\n");
+		exit(EXIT_FAILURE);
+	}
+
+	run_program(&gs, main_offset);
 }
 
 

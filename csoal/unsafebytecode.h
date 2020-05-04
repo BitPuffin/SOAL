@@ -63,7 +63,7 @@ enum opcode {
 
 struct genstate {
 	struct	{
-		char *key;
+		decl_id key;
 		size_t value;
 	}	*offset_tbl;
 	u8	*outbuf;

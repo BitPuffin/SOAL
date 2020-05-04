@@ -234,11 +234,11 @@ void advance_instruction(struct unsafevm *vm)
 	op_impls[in->opcode](vm, &data);
 }
 
-void run_program(struct genstate *s)
+void run_program(struct genstate *s, size_t start_offset)
 {
 	struct unsafevm *vm = mkuvm();
-	size_t mo = shget(s->offset_tbl, "main");
-	vm->iptr = (struct instruction *)(s->outbuf + mo);
+
+	vm->iptr = (struct instruction *)(s->outbuf + start_offset);
 	for (;;) {
 		advance_instruction(vm);
 	}

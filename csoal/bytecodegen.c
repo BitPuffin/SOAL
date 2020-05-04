@@ -120,7 +120,7 @@ static void emit_c_reset(struct genstate *s)
 	emit_instruction(s, &i);
 }
 
-static void emit_form_call(struct genstate *s, struct formnode *fnp)
+static void emit_form_call(struct genstate *s, struct scope *scope, struct formnode *fnp)
 {
 	char *id = fnp->identifier.identifier;
 	void *pptr = getcfn(id);
@@ -136,8 +136,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 				break;
 			case EXPR_IDENTIFIER:
 			{
-				size_t o = shget(s->offset_tbl,
-						 arg->value.identifier.identifier);
+				size_t o = hmget(s->offset_tbl,
+						 lookup_symbol(scope, arg->value.identifier.identifier)->id);
 
 				if (o == NOT_FOUND)
 					errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
@@ -148,7 +148,7 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			}					
 			break;
 			case EXPR_FORM:
-				emit_form_call(s, &arg->value.form);
+				emit_form_call(s, scope, &arg->value.form);
 				emit_pop_into_reg(s, REG_0);
 				emit_c_int_arg_from_reg(s, REG_0);
 				break;
@@ -179,7 +179,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			break;
 		case EXPR_IDENTIFIER:
 		{
-			size_t o = shget(s->offset_tbl, arg->value.identifier.identifier);
+			size_t o = hmget(s->offset_tbl,
+			                 lookup_symbol(scope, arg->value.identifier.identifier)->id);
 
 			if (o == NOT_FOUND)
 				errlocv_abort(arg->location, "Could not find identifier %s", arg->value.identifier.identifier);
@@ -203,7 +204,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 			break;
 		case EXPR_IDENTIFIER:
 		{
-			size_t o = shget(s->offset_tbl, arg->value.identifier.identifier);
+			size_t o = hmget(s->offset_tbl,
+			                 lookup_symbol(scope, arg->value.identifier.identifier)->id);
 			a.direct_value = *(i64 *)(s->outbuf + o);
 			break;
 		}
@@ -218,7 +220,8 @@ static void emit_form_call(struct genstate *s, struct formnode *fnp)
 
 		return;
 	} else {
-		size_t uo = shget(s->offset_tbl, fnp->identifier.identifier);
+		size_t uo = hmget(s->offset_tbl,
+		                  lookup_symbol(scope, fnp->identifier.identifier)->id);
 
 		if (uo == NOT_FOUND)
 			errlocv_abort(fnp->location,
@@ -247,7 +250,7 @@ static void emit_block(struct genstate *s, struct blocknode *bnp)
 
 		switch (expr->type) {
 		case EXPR_FORM:
-			emit_form_call(s, &expr->value.form);
+			emit_form_call(s, hmget(scope_tbl, bnp), &expr->value.form);
 			break;
 		case EXPR_BLOCK:
 			emit_block(s, &expr->value.block);
@@ -259,12 +262,12 @@ static void emit_block(struct genstate *s, struct blocknode *bnp)
 
 }
 
-static void emit_def(struct genstate *s, struct defnode *dnp);
+static void emit_def(struct genstate *s, struct scope *scope, struct defnode *dnp);
 
 static void emit_block_constants(struct genstate *s, struct blocknode *np)
 {
 	for (int i = 0; i < arrlen(np->defs); ++i) {
-		emit_def(s, &np->defs[i]);
+		emit_def(s, hmget(scope_tbl, np), &np->defs[i]);
 	}
 
 	for (int i = 0; i < arrlen(np->exprs); ++i) {
@@ -282,7 +285,7 @@ static void emit_proc(struct genstate *s, struct procnode *pnp)
 
 		switch (expr->type) {
 		case EXPR_FORM:
-			emit_form_call(s, &expr->value.form);
+			emit_form_call(s, hmget(scope_tbl, &pnp->block), &expr->value.form);
 			break;
 		case EXPR_BLOCK:
 			emit_block(s, &expr->value.block);
@@ -316,7 +319,7 @@ static void emit_integer(struct genstate *s, i64 integer)
 	/* } */
 }
 
-static void emit_def(struct genstate *s, struct defnode *dnp)
+static void emit_def(struct genstate *s, struct scope *scope, struct defnode *dnp)
 {
 	char *ident = dnp->identifier.identifier;
 
@@ -326,21 +329,22 @@ static void emit_def(struct genstate *s, struct defnode *dnp)
 	struct procnode *pnp;
 	/* @TODO: emit for identifiers */
 	/* @TODO: emit for forms       */
+	struct decl_info *dip = lookup_symbol(scope, ident);
+	/* printf("%s has id %lu in emit def\n", ident, dip->id); */
 
 	switch (vp->type) {
 	case EXPR_INTEGER:
 		offs = arrlen(s->outbuf);
-		shput(s->offset_tbl, ident, offs);
+		hmput(s->offset_tbl, dip->id, offs);
 		/* printf("emitting %s at offset %lu\n", ident, offs); */
 		inp = &vp->value.integer;
-		/* emit_raw_data(s, sizeof(inp->value), &inp->value); */
 		emit_integer(s, inp->value);
 		break;
 	case EXPR_PROC:
 		pnp = &vp->value.proc;
 		emit_block_constants(s, &pnp->block);
 		offs = arrlen(s->outbuf);
-		shput(s->offset_tbl, ident, offs);
+		hmput(s->offset_tbl, dip->id, offs);
 		/* printf("emitting %s at offset %lu\n", ident, offs); */
 		emit_proc(s, pnp);
 		break;
@@ -352,7 +356,7 @@ static void emit_toplevel(struct genstate *gst, struct toplevelnode *tlnp)
 	struct defnode *dnp = tlnp->definitions;
 	struct defnode *dnpend = dnp + arrlen(dnp);
 	for (; dnp < dnpend; dnp++) {
-		emit_def(gst, dnp);
+		emit_def(gst, hmget(scope_tbl, tlnp), dnp);
 	}
 }
 
@@ -361,7 +365,7 @@ struct genstate emit_bytecode(struct toplevelnode *tlnp)
 	struct genstate gst = {};
 
 	arrsetcap(gst.outbuf, 1024*1024*8);
-	shdefault(gst.offset_tbl, NOT_FOUND);
+	hmdefault(gst.offset_tbl, NOT_FOUND);
 	emit_toplevel(&gst, tlnp);
 
 	return gst;
