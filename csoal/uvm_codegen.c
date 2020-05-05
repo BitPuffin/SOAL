@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-
-#include "ints.h"
-
 #define NOT_FOUND SIZE_MAX
 
 struct c_table_entry {
@@ -11,7 +5,40 @@ struct c_table_entry {
 	void *fptr;
 };
 
-void prntnum(i64 n)
+void	 __prntnum(i64 n);
+void	 _builtin_exit();
+void	 __newline();
+
+static void	*getcfn(char *name);
+static void	 emit_instruction(struct genstate *s, struct instruction *i);
+static void	 emit_push(struct genstate *s, struct operand o);
+static void	 emit_pop(struct genstate *s, struct operand o);
+static void	 emit_ret(struct genstate *s);
+static void	 emit_pop_into_reg(struct genstate *s, enum regcode r);
+static void	 emit_c_int_arg_from_reg(struct genstate *s, enum regcode r);
+static void	 emit_c_int_arg_direct(struct genstate *s, i64 v);
+static void	 emit_c_call_void_direct(struct genstate *s, u64 data);
+static void	 emit_c_reset(struct genstate *s);
+static void	 emit_form_call(struct genstate *s, struct scope *scope, struct formnode *fnp);
+static void	 emit_block(struct genstate *s, struct blocknode *bnp);
+static void	 emit_block_constants(struct genstate *s, struct blocknode *np);
+static void	 emit_proc(struct genstate *s, struct procnode *pnp);
+static void	 emit_raw_data(struct genstate *s, size_t sz, void *d);
+static void	 emit_integer(struct genstate *s, i64 integer);
+static void	 emit_def(struct genstate *s, struct scope *scope, struct defnode *dnp);
+static void	 emit_toplevel(struct genstate *gst, struct toplevelnode *tlnp);
+static struct genstate	 emit_bytecode(struct toplevelnode *tlnp);
+static size_t	 emit_entry_point(struct genstate *gsp, size_t main_offset);
+
+
+struct c_table_entry c_fn_tbl[] = {
+	{ .name = "print-number", .fptr = __prntnum },
+	{ .name = "exit", .fptr = _builtin_exit },
+	{ .name = "newline", .fptr = __newline },
+};
+
+
+void __prntnum(i64 n)
 {
 	printf("%ld", n);
 	fflush(stdout);
@@ -27,13 +54,8 @@ void __newline()
 	printf("\n");
 }
 
-struct c_table_entry c_fn_tbl[] = {
-	{ .name = "print-number", .fptr = prntnum },
-	{ .name = "exit", .fptr = _builtin_exit },
-	{ .name = "newline", .fptr = __newline },
-};
 
-void *getcfn(char *name)
+static void *getcfn(char *name)
 {
 	size_t cnt = sizeof(c_fn_tbl) / sizeof(c_fn_tbl[0]);
 	for (int i = 0; i < cnt; i++) {
@@ -45,7 +67,6 @@ void *getcfn(char *name)
 	return NULL;
 }
 
-static void	emit_raw_data(struct genstate *s, size_t sz, void *d);
 
 static void emit_instruction(struct genstate *s, struct instruction *i)
 {
@@ -260,8 +281,6 @@ static void emit_block(struct genstate *s, struct blocknode *bnp)
 
 }
 
-static void emit_def(struct genstate *s, struct scope *scope, struct defnode *dnp);
-
 static void emit_block_constants(struct genstate *s, struct blocknode *np)
 {
 	for (int i = 0; i < arrlen(np->defs); ++i) {
@@ -358,7 +377,7 @@ static void emit_toplevel(struct genstate *gst, struct toplevelnode *tlnp)
 	}
 }
 
-struct genstate emit_bytecode(struct toplevelnode *tlnp)
+static struct genstate emit_bytecode(struct toplevelnode *tlnp)
 {
 	struct genstate gst = {};
 
@@ -369,7 +388,7 @@ struct genstate emit_bytecode(struct toplevelnode *tlnp)
 	return gst;
 }
 
-size_t emit_entry_point(struct genstate *gsp, size_t main_offset)
+static size_t emit_entry_point(struct genstate *gsp, size_t main_offset)
 {
 	size_t res = arrlen(gsp->outbuf);
 
