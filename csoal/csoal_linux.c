@@ -13,6 +13,8 @@
 
 #include "stb_ds.h"
 
+#define ARRLEN(x) (sizeof(x) / sizeof(x[0]))
+
 #include "ints.h"
 #include "info.h"
 #include "error.c"

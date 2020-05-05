@@ -1,20 +1,15 @@
-char const* delimiters = "()[]{}";
-bool is_terminator(char c)
-{
-	return strchr(delimiters, c) != NULL || isspace(c);
-}
+/** Lexer section **/
 
-/* return pointer to terminator or null if none was found */
-char const* find_terminator(char const* str)
-{
-	for (char const* it = str; *it != '\0'; ++it) {
-		if(is_terminator(*it))
-			return it;
-	}
-	return NULL;
-}
+#define delimiters "()[]{}"
+#define token_chars "(){}[]\"\\'"
 
-const char* token_chars  = "(){}[]\"\\'";
+enum lex_mode {
+	LX_MODE_NORMAL,
+	LX_MODE_STRING,
+	LX_MODE_ERROR,
+	LX_MODE_DONE,
+};
+
 enum token_type {
 	TOK_ERROR,
 	TOK_PAREN_OPEN   = '(',
@@ -30,6 +25,7 @@ enum token_type {
 	TOK_INTEGER,
 };
 
+
 struct token {
 	struct srcloc location;
 	enum token_type type;
@@ -37,13 +33,6 @@ struct token {
 		char *identifier;
 		int integer;
 	} value;
-};
-
-enum lex_mode {
-	LX_MODE_NORMAL,
-	LX_MODE_STRING,
-	LX_MODE_ERROR,
-	LX_MODE_DONE,
 };
 
 struct lex_state {
@@ -55,7 +44,31 @@ struct lex_state {
 	enum lex_mode mode;
 };
 
-struct lex_state initlex(char const* str, char const* srcpath)
+static bool            	 is_terminator(char c);
+static char const      	*find_terminator(char const* str);
+static struct lex_state	 initlex(char const* str, char const* srcpath);
+static void            	 scan_to_non_whitespace(struct lex_state* state);
+static char const      	*lex_into_token(struct token *token, char const *str);
+static struct token    	*eat_token(struct lex_state* state);
+static struct token    	*eat_token(struct lex_state* state);
+
+
+static bool is_terminator(char c)
+{
+	return strchr(delimiters, c) != NULL || isspace(c);
+}
+
+/* return pointer to terminator or null if none was found */
+static char const* find_terminator(char const* str)
+{
+	for (char const* it = str; *it != '\0'; ++it) {
+		if(is_terminator(*it))
+			return it;
+	}
+	return NULL;
+}
+
+static struct lex_state initlex(char const* str, char const* srcpath)
 {
 	struct lex_state state = {};
 	state.cursor    = str;
@@ -81,7 +94,7 @@ static void scan_to_non_whitespace(struct lex_state* state)
 	state->cursor = it;
 }
 
-char const* lex_into_token(struct token *token, char const *str)
+static char const* lex_into_token(struct token *token, char const *str)
 {
 	char const *end;
 	char firstc = *str;
@@ -119,7 +132,7 @@ char const* lex_into_token(struct token *token, char const *str)
 	return end;
 }
 
-struct token* eat_token(struct lex_state* state)
+static struct token* eat_token(struct lex_state* state)
 {
 	/* are we done? */
 	if(*state->cursor == '\0') {
@@ -159,6 +172,18 @@ struct token* eat_token(struct lex_state* state)
 /* 	return true; */
 /* } */
 
+/** Parser section **/
+
+#define open_parens "([{"
+#define closing_parens ")]}"
+#define matching_parens "()[]{}"
+
+enum keywords {
+	KW_PUB,
+	KW_DEF,
+	KW_PROC,
+};
+
 
 struct parser_state {
 	struct lex_state lxstate;
@@ -166,19 +191,34 @@ struct parser_state {
 	/* struct node *nodestack; */
 };
 
-#define ARRLEN(x) (sizeof(x) / sizeof(x[0]))
 
-enum keywords {
-	KW_PUB,
-	KW_DEF,
-	KW_PROC,
-};
-char const* keyword_strs[] = {
+static bool               	iskw(char const *ident);
+static bool               	consume_char_tok(struct parser_state *ps, char c);
+static bool               	is_open_paren(char c);
+static bool               	is_closing_paren(char c);
+static char               	get_matching_open_paren(char p);
+static bool               	consume_paren(struct parser_state *ps, char par);
+static bool               	consume_kw(struct parser_state *ps, enum keywords kw);
+static bool               	consume_iden(struct parser_state *ps, struct identnode *out);
+static bool               	consume_integer(struct parser_state *ps, struct intnode *integer);
+static bool               	consume_paramlist(struct parser_state *ps, struct argnode **out);
+static bool               	consume_proc(struct parser_state *ps, struct procnode *proc);
+static bool               	consume_form(struct parser_state *ps, struct formnode *form);
+static bool               	consume_block(struct parser_state *ps, struct blocknode *bnp);
+static bool               	consume_exprnode(struct parser_state *ps, struct exprnode *out);
+static bool               	consume_def(struct parser_state *ps, struct defnode *out);
+static struct toplevelnode	parse_toplevel(struct parser_state *ps);
+static struct toplevelnode	parse(char const *str, char const *fname);
+
+
+static const char *const keyword_strs[] = {
 	"pub",
 	"def",
 	"proc"
 };
-bool iskw(char const *ident)
+
+
+static bool iskw(char const *ident)
 {
 	for(int i = 0; i < ARRLEN(keyword_strs); ++i) {
 		if(strcmp(keyword_strs[i], ident) == 0) {
@@ -189,7 +229,7 @@ bool iskw(char const *ident)
 	return false;
 }
 
-bool consume_char_tok(struct parser_state *ps, char c)
+static bool consume_char_tok(struct parser_state *ps, char c)
 {
 	if(ps->lxstate.token.type == c) {
 		eat_token(&ps->lxstate);
@@ -198,24 +238,23 @@ bool consume_char_tok(struct parser_state *ps, char c)
 	return false;
 }
 
-const char* open_parens  = "([{";
-bool is_open_paren(char c)
+static bool is_open_paren(char c)
 {
 	return strchr(open_parens, c) != NULL;
 }
 
-const char* closing_parens = ")]}";
-bool is_closing_paren(char c)
+static bool is_closing_paren(char c)
 {
 	return strchr(closing_parens, c) != NULL;
 }
 
-const char* matching_parens = "()[]{}";
-char get_matching_open_paren(char p)
+static char get_matching_open_paren(char p)
 {
 	return *(strchr(matching_parens, p) - 1);
 }
-bool consume_paren(struct parser_state *ps, char par) {
+
+static bool consume_paren(struct parser_state *ps, char par)
+{
 	if (consume_char_tok(ps, par)) {
 		if (is_closing_paren(par)) {
 			char matching = get_matching_open_paren(par);
@@ -243,7 +282,7 @@ bool consume_paren(struct parser_state *ps, char par) {
 	return false;
 }
 
-bool consume_kw(struct parser_state *ps, enum keywords kw)
+static bool consume_kw(struct parser_state *ps, enum keywords kw)
 {
 	struct lex_state *ls = &ps->lxstate;
 	bool pred = ls->token.type == TOK_IDENTIFIER;
@@ -256,9 +295,7 @@ bool consume_kw(struct parser_state *ps, enum keywords kw)
 	}
 }
 
-
-
-bool consume_iden(struct parser_state *ps, struct identnode *out)
+static bool consume_iden(struct parser_state *ps, struct identnode *out)
 {
 	if (ps->lxstate.token.type != TOK_IDENTIFIER)
 		return false;
@@ -268,8 +305,7 @@ bool consume_iden(struct parser_state *ps, struct identnode *out)
 	return true;
 }
 
-
-bool consume_integer(struct parser_state *ps, struct intnode *integer)
+static bool consume_integer(struct parser_state *ps, struct intnode *integer)
 {
 	if (ps->lxstate.token.type != TOK_INTEGER) {
 		return false;
@@ -281,15 +317,12 @@ bool consume_integer(struct parser_state *ps, struct intnode *integer)
 	}
 }
 
-bool consume_paramlist(struct parser_state *ps, struct argnode **out)
+static bool consume_paramlist(struct parser_state *ps, struct argnode **out)
 {
 	return consume_paren(ps, '(') && consume_paren(ps, ')');
 }
 
-bool consume_def(struct parser_state *ps, struct defnode *out);
-
-bool consume_exprnode(struct parser_state *, struct exprnode *);
-bool consume_proc(struct parser_state *ps, struct procnode *proc)
+static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 {
 	struct parser_state before = *ps;
 	size_t beforestack = arrlen(ps->parenstack);
@@ -337,7 +370,7 @@ nope:
 	return false;
 }
 
-bool consume_form(struct parser_state *ps, struct formnode *form)
+static bool consume_form(struct parser_state *ps, struct formnode *form)
 {
 	memset(form, 0, sizeof(struct formnode));
 	form->location = ps->lxstate.location;
@@ -359,8 +392,7 @@ bool consume_form(struct parser_state *ps, struct formnode *form)
 	return true;
 }
 
-bool consume_exprnode(struct parser_state *ps, struct exprnode *out);
-bool consume_block(struct parser_state *ps, struct blocknode *bnp)
+static bool consume_block(struct parser_state *ps, struct blocknode *bnp)
 {
 	memset(bnp, 0, sizeof(struct blocknode));
 	bnp->location = ps->lxstate.location;
@@ -387,7 +419,7 @@ bool consume_block(struct parser_state *ps, struct blocknode *bnp)
 	return true;
 }
 
-bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
+static bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 {
 	memset(out, 0, sizeof(struct exprnode));
 	out->location = ps->lxstate.location;
@@ -410,7 +442,7 @@ bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 	return false;
 }
 
-bool consume_def(struct parser_state *ps, struct defnode *out)
+static bool consume_def(struct parser_state *ps, struct defnode *out)
 {
 	struct parser_state before = *ps;
 	size_t beforestack = arrlen(ps->parenstack);
@@ -451,7 +483,8 @@ nope:
 	return false;
 }
 
-struct toplevelnode parse_toplevel(struct parser_state *ps) {
+static struct toplevelnode parse_toplevel(struct parser_state *ps)
+{
 	struct toplevelnode node = {};
 
 	node.filename = ps->lxstate.location.path;
@@ -468,7 +501,7 @@ struct toplevelnode parse_toplevel(struct parser_state *ps) {
 	return node;
 }
 
-struct toplevelnode parse(char const *str, char const *fname)
+static struct toplevelnode parse(char const *str, char const *fname)
 {
 	struct parser_state ps = {};
 
