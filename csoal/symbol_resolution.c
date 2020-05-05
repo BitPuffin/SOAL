@@ -35,31 +35,31 @@ static struct scope_table *scope_tbl;
 struct scope *_default_scope;
 
 
-decl_id         	 gen_decl_id();
+static decl_id     	 gen_decl_id();
 
-struct scope		*push_scope(struct scope *parent);
-struct scope		*pop_scope(struct scope *sp);
-void            	 scope_insert_def(struct scope *sp, struct defnode *dnp);
-struct decl_info	*lookup_symbol(struct scope *sp, char *dep);
-bool            	 scope_has_same_symbol(struct scope *sp, char *sym);
-void            	 resolve_block_syms(struct scope *sp, struct blocknode *bnp);
-void            	 resolve_proc_syms(struct scope *sp, struct procnode *pnp);
-void            	 resolve_form_syms(struct scope *sp, struct formnode *fnp);
-void            	 resolve_toplevel_symbols(struct toplevelnode *tlnp);
+static struct scope	*push_scope(struct scope *parent);
+static struct scope	*pop_scope(struct scope *sp);
+static void        	 scope_insert_def(struct scope *sp, struct defnode *dnp);
+static struct decl_info	*lookup_symbol(struct scope *sp, char *dep);
+static bool        	 scope_has_same_symbol(struct scope *sp, char *sym);
+static void        	 resolve_block_syms(struct scope *sp, struct blocknode *bnp);
+static void        	 resolve_proc_syms(struct scope *sp, struct procnode *pnp);
+static void        	 resolve_form_syms(struct scope *sp, struct formnode *fnp);
+static void        	 resolve_toplevel_symbols(struct toplevelnode *tlnp);
 
-void            	 _scope_builtin(char *name);
-void            	 init_default_scope();
-void            	 symres_init();
+static void        	 _scope_builtin(char *name);
+static void        	 init_default_scope();
+static void        	 symres_init();
 
 
-decl_id gen_decl_id()
+static decl_id gen_decl_id()
 {
 	return __decl_id_counter++;
 }
 /* get the scope of some AST node, blocks and toplevels */
 
 
-struct scope *push_scope(struct scope *parent)
+static struct scope *push_scope(struct scope *parent)
 {
 	struct scope *sp = malloc(sizeof(struct scope));
 	assert(sp != NULL);
@@ -69,14 +69,14 @@ struct scope *push_scope(struct scope *parent)
 	return sp;
 }
 
-struct scope *pop_scope(struct scope *sp)
+static struct scope *pop_scope(struct scope *sp)
 {
 	struct scope *pp = sp->parent;
 	free(sp);
 	return pp;
 }
 
-void scope_insert_def(struct scope *sp, struct defnode *dnp)
+static void scope_insert_def(struct scope *sp, struct defnode *dnp)
 {
 	struct decl_info inf = {
 		.id = gen_decl_id(),
@@ -90,7 +90,7 @@ void scope_insert_def(struct scope *sp, struct defnode *dnp)
 	hmput(sp->decl_tbl, inf.id, inf);
 }
 
-struct decl_info *lookup_symbol(struct scope *sp, char *dep)
+static struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 {
 	while(sp != NULL) {
 		struct decl_info *info = &shget(sp->sym_tbl, dep);
@@ -103,12 +103,12 @@ struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 	return NULL;
 }
 
-bool scope_has_same_symbol(struct scope *sp, char *sym)
+static bool scope_has_same_symbol(struct scope *sp, char *sym)
 {
 	return shget(sp->sym_tbl, sym).identifier != NULL;
 }
 
-void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
+static void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 {
 	struct scope *nsp = push_scope(sp);
 	hmput(scope_tbl, bnp, nsp);
@@ -128,12 +128,12 @@ void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 	}
 }
 
-void resolve_proc_syms(struct scope *sp, struct procnode *pnp)
+static void resolve_proc_syms(struct scope *sp, struct procnode *pnp)
 {
 	resolve_block_syms(sp, &pnp->block);
 }
 
-void resolve_form_syms(struct scope *sp, struct formnode *fnp)
+static void resolve_form_syms(struct scope *sp, struct formnode *fnp)
 {
 	if (lookup_symbol(sp, fnp->identifier.identifier) == NULL) {
 		errlocv_abort(fnp->location,
@@ -158,7 +158,7 @@ void resolve_form_syms(struct scope *sp, struct formnode *fnp)
 	}
 }
 
-void resolve_toplevel_symbols(struct toplevelnode *tlnp)
+static void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 {
 	struct scope *scope = push_scope(_default_scope);
 	hmput(scope_tbl, tlnp, scope);
@@ -200,7 +200,7 @@ void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 }
 
 
-void _scope_builtin(char *name)
+static void _scope_builtin(char *name)
 {
 	struct decl_info info = {};
 	info = (struct decl_info) {
@@ -213,7 +213,7 @@ void _scope_builtin(char *name)
 	shput(_default_scope->sym_tbl, name, info);
 }
 
-void init_default_scope()
+static void init_default_scope()
 {
 	_default_scope = malloc(sizeof(struct scope));
 	assert(_default_scope != NULL);
@@ -227,7 +227,7 @@ void init_default_scope()
 	_scope_builtin("newline");
 }
 
-void symres_init()
+static void symres_init()
 {
 	init_default_scope();
 }
