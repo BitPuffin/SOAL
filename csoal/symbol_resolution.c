@@ -1,10 +1,4 @@
 typedef size_t decl_id;
-static decl_id __decl_id_counter;
-
-decl_id gen_decl_id()
-{
-	return __decl_id_counter++;
-}
 
 struct decl_info {
 	decl_id id;
@@ -14,18 +8,56 @@ struct decl_info {
 	struct scope *scope;
 };
 
+struct sym_table {
+	char *key;
+	struct decl_info value;
+};
+
+struct decl_table {
+	decl_id key;
+	struct decl_info value;
+};
+
 struct scope {
 	struct decl_table *decl_tbl;
 	struct sym_table *sym_tbl;
 	struct scope *parent;
 };
 
-struct sym_table { char *key; struct decl_info value; };
-struct decl_table { decl_id key; struct decl_info value; };
+struct scope_table {
+	void *key;
+	struct scope *value;
+};
 
+
+static decl_id __decl_id_counter;
+static struct scope_table *scope_tbl;
+struct scope *_default_scope;
+
+
+decl_id         	 gen_decl_id();
+
+struct scope		*push_scope(struct scope *parent);
+struct scope		*pop_scope(struct scope *sp);
+void            	 scope_insert_def(struct scope *sp, struct defnode *dnp);
+struct decl_info	*lookup_symbol(struct scope *sp, char *dep);
+bool            	 scope_has_same_symbol(struct scope *sp, char *sym);
+void            	 resolve_block_syms(struct scope *sp, struct blocknode *bnp);
+void            	 resolve_proc_syms(struct scope *sp, struct procnode *pnp);
+void            	 resolve_form_syms(struct scope *sp, struct formnode *fnp);
+void            	 resolve_toplevel_symbols(struct toplevelnode *tlnp);
+
+void            	 _scope_builtin(char *name);
+void            	 init_default_scope();
+void            	 symres_init();
+
+
+decl_id gen_decl_id()
+{
+	return __decl_id_counter++;
+}
 /* get the scope of some AST node, blocks and toplevels */
-struct scope_table { void *key; struct scope *value; };
-struct scope_table *scope_tbl;
+
 
 struct scope *push_scope(struct scope *parent)
 {
@@ -71,14 +103,11 @@ struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 	return NULL;
 }
 
-struct scope *_default_scope;
 
 bool scope_has_same_symbol(struct scope *sp, char *sym)
 {
 	return shget(sp->sym_tbl, sym).identifier != NULL;
 }
-
-void resolve_form_syms(struct scope *sp, struct formnode *fnp);
 
 void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 {
