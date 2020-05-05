@@ -59,7 +59,9 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	run_program(&gs, main_offset);
+	size_t entry_offset = emit_entry_point(&gs, main_offset);
+
+	run_program(&gs, entry_offset);
 }
 
 

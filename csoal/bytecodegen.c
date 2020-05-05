@@ -370,3 +370,27 @@ struct genstate emit_bytecode(struct toplevelnode *tlnp)
 
 	return gst;
 }
+
+size_t emit_entry_point(struct genstate *gsp, size_t main_offset)
+{
+	size_t res = arrlen(gsp->outbuf);
+
+	i64 now = (i64)res;
+	i64 nowToMain = main_offset - now;
+
+	struct instruction ins = {
+		.opcode = OPC_CALL,
+	};
+	struct operand *opr = &ins.operands[0];
+	opr->mode = MODE_DIRECT;
+	opr->direct_value = nowToMain;
+
+	emit_instruction(gsp, &ins);
+
+	opr->direct_value = (u64)getcfn("exit");
+	ins.opcode = OPC_CALL_C_VOID;
+
+	emit_instruction(gsp, &ins);
+
+	return res;
+}

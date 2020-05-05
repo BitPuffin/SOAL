@@ -8,5 +8,4 @@
 	}
 	(def y int 123)
 	(print-number y)
-	(newline)
-	(exit)))
+	(newline)))
