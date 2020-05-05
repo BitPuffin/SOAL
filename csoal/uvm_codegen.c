@@ -4,8 +4,6 @@
 
 #include "ints.h"
 
-#include "unsafebytecode.h"
-
 #define NOT_FOUND SIZE_MAX
 
 struct c_table_entry {

@@ -14,10 +14,11 @@
 #include "parse.c"
 #include "symbol_resolution.c"
 #include "typecheck.c"
-#include "bytecodegen.c"
-#include "unsafevm.c"
 #include "init.c"
-#include "bcdisass.c"
+#include "uvm_bytecode.h"
+#include "uvm_codegen.c"
+#include "uvm.c"
+#include "uvm_disass.c"
 
 char *read_entire_file(char *path)
 {
