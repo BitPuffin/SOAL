@@ -1,10 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <assert.h>
-
 char const* delimiters = "()[]{}";
 bool is_terminator(char c)
 {
