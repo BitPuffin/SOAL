@@ -1,9 +1,11 @@
-
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #include <sys/stat.h>
+
+#include <dyncall.h>
 
 #include "stb_ds.h"
 
