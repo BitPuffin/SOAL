@@ -103,7 +103,6 @@ struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 	return NULL;
 }
 
-
 bool scope_has_same_symbol(struct scope *sp, char *sym)
 {
 	return shget(sp->sym_tbl, sym).identifier != NULL;
@@ -199,6 +198,7 @@ void resolve_toplevel_symbols(struct toplevelnode *tlnp)
 		/* lookup_symbol() */
 	}
 }
+
 
 void _scope_builtin(char *name)
 {
