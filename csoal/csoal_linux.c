@@ -24,6 +24,7 @@
 #include "typecheck.c"
 #include "init.c"
 #include "uvm_bytecode.h"
+#include "uvm_op_data.h"
 #include "uvm_codegen.c"
 #include "uvm.c"
 #include "uvm_disass.c"

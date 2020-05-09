@@ -23,21 +23,6 @@ const char *reg_strs[REG_COUNT] = {
 	"sbp",
 };
 
-const char *opc_strs[OPC_COUNT] = {
-	"call",
-	"enter",
-	"leave",
-	"ret",
-	"c-reset",
-	"call-c-void",
-	"call-c-int",
-	"c-int-arg",
-	"add-int",
-	"load",
-	"push",
-	"pop",
-	"mov"
-};
 
 void disass_proc(struct instruction *istart, struct instruction *iend)
 {

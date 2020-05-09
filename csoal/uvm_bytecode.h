@@ -37,28 +37,9 @@ struct operand {
 	u64 direct_value;
 };
 
-
 struct instruction {
 	u8 opcode;
 	struct operand operands[4];
-};
-
-enum opcode {
-	OPC_CALL,
-	OPC_ENTER,
-	OPC_LEAVE,
-	OPC_RET,
-	OPC_C_RESET,
-	OPC_CALL_C_VOID,
-	OPC_CALL_C_INT,
-	OPC_C_INT_ARG,
-	OPC_ADD_INT,
-	OPC_LOAD_INT,
-	OPC_PUSH,
-	OPC_POP,
-	OPC_MOV,
-
-	OPC_COUNT
 };
 
 struct local_var_offset {
