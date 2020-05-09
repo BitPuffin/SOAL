@@ -34,7 +34,7 @@ char *read_entire_file(char *path)
 	return buf;
 }
 
-#include "module_includes.h"
+#include "csoal_build_includes.h"
 
 int main()
 {
