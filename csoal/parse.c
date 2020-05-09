@@ -198,28 +198,39 @@ struct parser_state {
 	/* struct node *nodestack; */
 };
 
+struct parser_state_snapshot {
+	struct parser_state before;
+	size_t paren_count_before;
+};
 
-static bool               	iskw(char const *ident);
-static bool               	consume_char_tok(struct parser_state *ps, char c);
-static bool               	is_open_paren(char c);
-static bool               	is_closing_paren(char c);
-static char               	get_matching_open_paren(char p);
-static bool               	consume_paren(struct parser_state *ps, char par);
-static bool               	consume_kw(struct parser_state *ps, enum keywords kw);
-static bool               	consume_iden(struct parser_state *ps, struct identnode *out);
-static bool               	consume_integer(struct parser_state *ps, struct intnode *integer);
-static bool               	consume_paramlist(struct parser_state *ps, struct argnode **out);
-static void               	consume_block_inner(struct parser_state *ps, struct blocknode *bnp);
-static bool               	consume_proc(struct parser_state *ps, struct procnode *proc);
-static bool               	consume_form(struct parser_state *ps, struct formnode *form);
-static bool               	consume_block(struct parser_state *ps, struct blocknode *bnp);
-static bool               	consume_exprnode(struct parser_state *ps, struct exprnode *out);
-static bool               	consume_def(struct parser_state *ps, struct defnode *out);
-static bool               	consume_type_annotation(struct parser_state *psp, struct type_annotation_node *res);
 
-static bool               	consume_var(struct parser_state *psp, struct varnode *res);
-static struct toplevelnode	parse_toplevel(struct parser_state *ps);
-static struct toplevelnode	parse(char const *str, char const *fname);
+static bool	 iskw(char const *ident);
+static bool	 consume_char_tok(struct parser_state *ps, char c);
+static bool	 is_open_paren(char c);
+static bool	 is_closing_paren(char c);
+static char	 get_matching_open_paren(char p);
+static struct parser_state_snapshot
+           	 make_parser_snapshot(struct parser_state *ps);
+static void	 restore_parser_state(
+           		struct parser_state *ps,
+           		struct parser_state_snapshot *snap);
+static bool	 consume_paren(struct parser_state *ps, char par);
+static bool	 consume_kw(struct parser_state *ps, enum keywords kw);
+static bool	 consume_iden(struct parser_state *ps, struct identnode *out);
+static bool	 consume_integer(struct parser_state *ps, struct intnode *integer);
+static bool	 consume_paramlist(struct parser_state *ps, struct argnode **out);
+static void	 consume_block_inner(struct parser_state *ps, struct blocknode *bnp);
+static bool	 consume_proc(struct parser_state *ps, struct procnode *proc);
+static bool	 consume_form(struct parser_state *ps, struct formnode *form);
+static bool	 consume_block(struct parser_state *ps, struct blocknode *bnp);
+static bool	 consume_exprnode(struct parser_state *ps, struct exprnode *out);
+static bool	 consume_def(struct parser_state *ps, struct defnode *out);
+static bool	 consume_type_annotation(struct parser_state *psp, struct type_annotation_node *res);
+static bool	 consume_var(struct parser_state *psp, struct varnode *res);
+static struct toplevelnode
+           	 parse_toplevel(struct parser_state *ps);
+static struct toplevelnode
+           	 parse(char const *str, char const *fname);
 
 static bool iskw(char const *ident)
 {
@@ -254,6 +265,27 @@ static bool is_closing_paren(char c)
 static char get_matching_open_paren(char p)
 {
 	return *(strchr(matching_parens, p) - 1);
+}
+
+static struct parser_state_snapshot
+make_parser_snapshot(struct parser_state *ps)
+{
+	struct parser_state_snapshot snap = {
+		.before = *ps,
+		.paren_count_before = arrlen(ps->parenstack),
+	};
+	return snap;
+}
+
+static void
+restore_parser_snapshot(
+	struct parser_state *ps,
+	struct parser_state_snapshot *snap)
+{
+	snap->before.parenstack = ps->parenstack;
+	*ps = snap->before;
+	arrsetlen(ps->parenstack, snap->paren_count_before);
+
 }
 
 static bool consume_paren(struct parser_state *ps, char par)
@@ -352,8 +384,7 @@ static void consume_block_inner(struct parser_state *ps, struct blocknode *bnp)
 
 static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 {
-	struct parser_state before = *ps;
-	size_t beforestack = arrlen(ps->parenstack);
+	struct parser_state_snapshot snap = make_parser_snapshot(ps);
 	memset(proc, 0, sizeof(struct procnode));
 	proc->location = ps->lxstate.location;
 
@@ -376,9 +407,7 @@ static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 	return true;
 
 nope:
-	before.parenstack = ps->parenstack;
-	*ps = before;
-	arrsetlen(ps->parenstack, beforestack);
+	restore_parser_snapshot(ps, &snap);
 	return false;
 }
 
@@ -445,8 +474,8 @@ static bool consume_exprnode(struct parser_state *ps, struct exprnode *out)
 
 static bool consume_def(struct parser_state *ps, struct defnode *out)
 {
-	struct parser_state before = *ps;
-	size_t beforestack = arrlen(ps->parenstack);
+	struct parser_state_snapshot snap = make_parser_snapshot(ps);
+
 	memset(out, 0, sizeof(struct defnode));
 	out->location = ps->lxstate.location;
 
@@ -478,9 +507,7 @@ static bool consume_def(struct parser_state *ps, struct defnode *out)
 
 	return true;
 nope:
-	before.parenstack = ps->parenstack;
-	*ps = before;
-	arrsetlen(ps->parenstack, beforestack);
+	restore_parser_snapshot(ps, &snap);
 	return false;
 }
 
@@ -494,8 +521,7 @@ static bool consume_type_annotation(
 
 static bool consume_var(struct parser_state *psp, struct varnode *res)
 {
-	struct parser_state before = *psp;
-	size_t beforestack = arrlen(psp->parenstack);
+	struct parser_state_snapshot snap = make_parser_snapshot(psp);
 	memset(res, 0, sizeof(struct defnode));
 	res->location = psp->lxstate.location;
 
@@ -529,9 +555,7 @@ static bool consume_var(struct parser_state *psp, struct varnode *res)
 	return true;
 
 nope:
-	before.parenstack = psp->parenstack;
-	*psp = before;
-	arrsetlen(psp->parenstack, beforestack);
+	restore_parser_snapshot(psp, &snap);
 	return false;
 }
 
