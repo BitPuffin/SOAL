@@ -1,11 +1,14 @@
-(pub def main (proc void ()
-	(print-number 1234)
+(pub def hey (proc void ()
 	(newline)
-	{
-		(def y int 999)
-		(print-number y)
-		(newline)
-	}
-	(def y int 123)
-	(print-number y)
+	(var x 22)
+	(var xx 22)
+
+	(print-number x)
+	(newline)))
+
+(pub def main (proc void ()
+	(hey)
+	(var x 2)
+	(var zzz 3)
+	(print-number x)
 	(newline)))

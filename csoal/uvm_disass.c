@@ -25,6 +25,7 @@ const char *reg_strs[REG_COUNT] = {
 
 const char *opc_strs[OPC_COUNT] = {
 	"call",
+	"enter",
 	"leave",
 	"ret",
 	"c-reset",
@@ -62,6 +63,8 @@ void disass_proc(struct instruction *istart, struct instruction *iend)
 				printf("%s ", reg_strs[opr.reg]);
 				break;
 			case MODE_MEM:
+				if (opr.offset != 0)
+					printf("%d", opr.offset);
 				printf("(%s) ", reg_strs[opr.reg]);
 				break;
 			case MODE_DIRECT:

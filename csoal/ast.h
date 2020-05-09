@@ -12,6 +12,7 @@ struct blocknode {
 	struct srcloc location;
 	struct exprnode *exprs;
 	struct defnode *defs;
+	struct varnode *vars;
 };
 
 /* @TODO: collect nested defs separate from exprs */
@@ -34,7 +35,13 @@ enum expr_type {
 	EXPR_PROC,
 	EXPR_FORM,
 	EXPR_BLOCK,
+	EXPR_VAR
 };
+
+struct type_annotation_node {
+	struct identnode identifier;
+};
+
 
 struct exprnode {
 	struct srcloc location;
@@ -45,7 +52,16 @@ struct exprnode {
 		struct procnode proc;
 		struct formnode form;
 		struct blocknode block;
+		struct varnode *var;
 	} value;
+};
+struct varnode {
+	struct srcloc location;
+	bool public;
+	bool explicit_type;
+	struct type_annotation_node type;
+	struct identnode identifier;
+	struct exprnode value;
 };
 
 struct defnode {

@@ -58,9 +58,14 @@ int main()
 	/*struct sym_table *stbl = collect_module_syms(&n);*/
 	resolve_toplevel_symbols(&n);
 	struct genstate gs = emit_bytecode(&n);
-	/* size_t offset = shget(gs.offset_tbl, "do-my-stuff"); */
-	/* struct instruction *mainstart = (struct instruction *)(gs.outbuf + offset); */
-	/* disass_proc(mainstart, mainstart + 42); */
+
+	{
+		struct scope *scope = hmget(scope_tbl, &n);
+		size_t offset = hmget(gs.offset_tbl, lookup_symbol(scope, "main")->id);
+		struct instruction *start = (struct instruction *)(gs.outbuf + offset);
+		disass_proc(start, start + 42);
+	}
+
 	struct scope *scope = hmget(scope_tbl, &n);
 	size_t main_offset = hmget(gs.offset_tbl, lookup_symbol(scope, "main")->id);
 	if (main_offset == NOT_FOUND) {

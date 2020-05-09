@@ -58,6 +58,8 @@ struct unsafevm	*mkuvm_stacksz(size_t sz);
 static void    	 desuvm(struct unsafevm vm);
 
 static void	 op_call(struct unsafevm *vm, struct instruction_data *id);
+static void	 op_enter(struct unsafevm *vm, struct instruction_data *id);
+static void	 op_leave(struct unsafevm *vm, struct instruction_data *id);
 static void	 op_ret(struct unsafevm *vm, struct instruction_data *id);
 static void	 op_c_reset(struct unsafevm *vm, struct instruction_data *id);
 static void	 op_call_c_void(struct unsafevm *vm, struct instruction_data *id);
@@ -77,6 +79,7 @@ static void	 run_program(struct genstate *s, size_t start_offset);
 
 int oprcounts[] = {
 	1, /* call        */
+	1, /* enter       */
 	0, /* leave       */
 	0, /* ret         */
 	0, /* c_reset     */
@@ -92,7 +95,8 @@ int oprcounts[] = {
 
 instruction_impl op_impls[] = {
 	op_call,
-	NULL,
+	op_enter,
+	op_leave,
 	op_ret,
 	op_c_reset,
 	op_call_c_void,
@@ -143,6 +147,22 @@ void op_call(struct unsafevm *vm, struct instruction_data *id)
 	i64 addroffs = (i64)*d->val;
 	uvm_push(vm, (u64)vm->iptr);
 	vm->iptr = ((void *)(vm->iptr - 1)) + addroffs;
+}
+
+static void op_enter(struct unsafevm *vm, struct instruction_data *id)
+{
+	struct op_1operand_data *dp = (struct op_1operand_data *) id;
+	u64 bytes = *dp->val;
+
+	uvm_push(vm, vm->registers[REG_SBP]);
+	vm->registers[REG_SBP] = vm->registers[REG_SP];
+	vm->registers[REG_SP] -= bytes;
+}
+
+static void op_leave(struct unsafevm *vm, struct instruction_data *id)
+{
+	vm->registers[REG_SP] = vm->registers[REG_SBP];
+	vm->registers[REG_SBP] = uvm_pop(vm);
 }
 
 static void op_ret(struct unsafevm *vm, struct instruction_data *id)

@@ -45,6 +45,7 @@ struct instruction {
 
 enum opcode {
 	OPC_CALL,
+	OPC_ENTER,
 	OPC_LEAVE,
 	OPC_RET,
 	OPC_C_RESET,
@@ -60,6 +61,10 @@ enum opcode {
 	OPC_COUNT
 };
 
+struct local_var_offset {
+	decl_id id;
+	u64 offset;
+};
 
 struct genstate {
 	struct	{
@@ -67,4 +72,6 @@ struct genstate {
 		size_t value;
 	}	*offset_tbl;
 	u8	*outbuf;
+	struct local_var_offset *local_var_offsets;
+	size_t stackframe_size;
 };

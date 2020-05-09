@@ -181,9 +181,16 @@ static struct token* eat_token(struct lex_state* state)
 enum keywords {
 	KW_PUB,
 	KW_DEF,
+	KW_VAR,
 	KW_PROC,
 };
 
+static const char *const keyword_strs[] = {
+	"pub",
+	"def",
+	"var",
+	"proc"
+};
 
 struct parser_state {
 	struct lex_state lxstate;
@@ -207,16 +214,11 @@ static bool               	consume_form(struct parser_state *ps, struct formnode
 static bool               	consume_block(struct parser_state *ps, struct blocknode *bnp);
 static bool               	consume_exprnode(struct parser_state *ps, struct exprnode *out);
 static bool               	consume_def(struct parser_state *ps, struct defnode *out);
+static bool               	consume_type_annotation(struct parser_state *psp, struct type_annotation_node *res);
+
+static bool               	consume_var(struct parser_state *psp, struct varnode *res);
 static struct toplevelnode	parse_toplevel(struct parser_state *ps);
 static struct toplevelnode	parse(char const *str, char const *fname);
-
-
-static const char *const keyword_strs[] = {
-	"pub",
-	"def",
-	"proc"
-};
-
 
 static bool iskw(char const *ident)
 {
@@ -347,13 +349,24 @@ static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 
 	struct defnode def;
 
+	struct varnode var;
+
 	for (;;) {
-		if (consume_def(ps, &def))
+		if (consume_def(ps, &def)) {
 			arrput(proc->block.defs, def);
-		else if (consume_exprnode(ps, &expr))
+		} else if (consume_var(ps, &var)) {
+			arrput(proc->block.vars, var);
+			expr = (struct exprnode) {
+				.location = var.location,
+				.type = EXPR_VAR,
+				.value.var = &arrlast(proc->block.vars),
+			};
 			arrput(proc->block.exprs, expr);
-		else
+		} else if (consume_exprnode(ps, &expr)) {
+			arrput(proc->block.exprs, expr);
+		} else {
 			break;
+		}
 	}
 
 	if (!consume_paren(ps, ')')) {
@@ -402,10 +415,19 @@ static bool consume_block(struct parser_state *ps, struct blocknode *bnp)
 
 	struct defnode def;
 	struct exprnode expr;
+	struct varnode var;
 
 	for (;;) {
 		if (consume_def(ps, &def)) {
 			arrput(bnp->defs, def);
+		} else if (consume_var(ps, &var)) {
+			arrput(bnp->vars, var);
+			expr = (struct exprnode) {
+				.location = var.location,
+				.type = EXPR_VAR,
+				.value.var = &arrlast(bnp->vars),
+			};
+			arrput(bnp->exprs, expr);
 		} else if (consume_exprnode(ps, &expr)) {
 			arrput(bnp->exprs, expr);
 		} else {
@@ -480,6 +502,57 @@ nope:
 	before.parenstack = ps->parenstack;
 	*ps = before;
 	arrsetlen(ps->parenstack, beforestack);
+	return false;
+}
+
+static bool consume_type_annotation(
+	struct parser_state *psp,
+	struct type_annotation_node *res)
+{
+	/* @TODO: implement this */
+	return false;
+}
+
+static bool consume_var(struct parser_state *psp, struct varnode *res)
+{
+	struct parser_state before = *psp;
+	size_t beforestack = arrlen(psp->parenstack);
+	memset(res, 0, sizeof(struct defnode));
+	res->location = psp->lxstate.location;
+
+
+	if(!consume_paren(psp, '('))
+		goto nope;
+
+	if(consume_kw(psp, KW_PUB))
+		res->public = true;
+
+	if(!consume_kw(psp, KW_VAR))
+		goto nope;
+
+	if(!consume_iden(psp, &res->identifier)) {
+		struct srcloc loc = psp->lxstate.location;
+		errloc_abort(loc, "Expected identifier");
+	}
+
+	res->explicit_type = consume_type_annotation(psp, &res->type);
+
+	if(!consume_exprnode(psp, &res->value)) {
+		struct srcloc loc = psp->lxstate.location;
+		errloc_abort(loc, "Definition requires value expression");
+	}
+
+	if(!consume_paren(psp, ')')) {
+		struct srcloc loc = psp->lxstate.location;
+		errloc_abort(loc, "Expected closing parenthesis");
+	}
+
+	return true;
+
+nope:
+	before.parenstack = psp->parenstack;
+	*psp = before;
+	arrsetlen(psp->parenstack, beforestack);
 	return false;
 }
 

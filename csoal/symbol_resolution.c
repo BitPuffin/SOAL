@@ -5,6 +5,7 @@ struct decl_info {
 	struct srcloc location;
 	char *identifier;
 	struct defnode *defnode;
+	struct varnode *varnode;
 	struct scope *scope;
 };
 
@@ -40,6 +41,7 @@ static decl_id     	 gen_decl_id();
 static struct scope	*push_scope(struct scope *parent);
 static struct scope	*pop_scope(struct scope *sp);
 static void        	 scope_insert_def(struct scope *sp, struct defnode *dnp);
+static void        	 scope_insert_var(struct scope *sp, struct varnode *vnp);
 static struct decl_info	*lookup_symbol(struct scope *sp, char *dep);
 static bool        	 scope_has_same_symbol(struct scope *sp, char *sym);
 static void        	 resolve_block_syms(struct scope *sp, struct blocknode *bnp);
@@ -90,6 +92,20 @@ static void scope_insert_def(struct scope *sp, struct defnode *dnp)
 	hmput(sp->decl_tbl, inf.id, inf);
 }
 
+static void scope_insert_var(struct scope *sp, struct varnode *vnp)
+{
+	struct decl_info inf = {
+		.id = gen_decl_id(),
+		.location = vnp->location,
+		.identifier = vnp->identifier.identifier,
+		.varnode = vnp,
+		.scope = sp,
+	};
+	/* printf("inserting %s with id %lu into scope\n", inf.identifier, inf.id); */
+	shput(sp->sym_tbl, inf.identifier, inf);
+	hmput(sp->decl_tbl, inf.id, inf);
+}
+
 static struct decl_info *lookup_symbol(struct scope *sp, char *dep)
 {
 	while(sp != NULL) {
@@ -114,16 +130,38 @@ static void resolve_block_syms(struct scope *sp, struct blocknode *bnp)
 	hmput(scope_tbl, bnp, nsp);
 
 	for (int i = 0; i < arrlen(bnp->defs); ++i) {
-		scope_insert_def(nsp, &bnp->defs[i]);
+		struct defnode *dp = &bnp->defs[i];
+		if (scope_has_same_symbol(nsp, dp->identifier.identifier)) {
+			errlocv_abort(dp->location,
+			              "Duplicate definition of %s",
+			              dp->identifier.identifier);
+		}
+		scope_insert_def(nsp, dp);
 	}
-
 	for (int i = 0; i < arrlen(bnp->exprs); ++i) {
+		struct exprnode *exp;
+		struct varnode *vp;
 		struct exprnode *enp = &bnp->exprs[i];
 
-		if (enp->type == EXPR_FORM) {
+		switch (enp->type) {
+		case EXPR_FORM:
 			resolve_form_syms(nsp, &enp->value.form);
-		} else if (enp->type == EXPR_BLOCK) {
+			break;
+		case EXPR_BLOCK:
 			resolve_block_syms(nsp, &enp->value.block);
+			break;
+		case EXPR_VAR:
+			vp = enp->value.var;
+			exp = &vp->value;
+			if (exp->type == EXPR_FORM)
+				resolve_form_syms(nsp, &exp->value.form);
+			else if (exp->type != EXPR_INTEGER)
+				errloc_abort(exp->location, "::symres:: not sure how to handle value expression");
+			scope_insert_var(nsp, vp);
+				
+			break;
+		default:
+			errloc_abort(enp->location, "Illegal expression type");			
 		}
 	}
 }
