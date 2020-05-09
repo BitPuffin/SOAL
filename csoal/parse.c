@@ -117,8 +117,6 @@ static char const* lex_into_token(struct token *token, char const *str)
 		strncpy(intstr, str, sz);
 		intstr[sz] = '\0';
 		token->value.integer = atoi(intstr);
-
-		/* @TODO set integer value */
 	} else {
 		token->type = TOK_IDENTIFIER;
 		/* it is an identifier */

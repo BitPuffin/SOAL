@@ -15,7 +15,6 @@ struct blocknode {
 	struct varnode *vars;
 };
 
-/* @TODO: collect nested defs separate from exprs */
 struct procnode {
 	struct srcloc location;
 	struct identnode returntype;
@@ -42,7 +41,6 @@ struct type_annotation_node {
 	struct identnode identifier;
 };
 
-
 struct exprnode {
 	struct srcloc location;
 	enum expr_type type;
@@ -55,6 +53,7 @@ struct exprnode {
 		struct varnode *var;
 	} value;
 };
+
 struct varnode {
 	struct srcloc location;
 	bool public;
