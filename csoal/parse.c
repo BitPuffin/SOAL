@@ -209,6 +209,7 @@ static bool               	consume_kw(struct parser_state *ps, enum keywords kw)
 static bool               	consume_iden(struct parser_state *ps, struct identnode *out);
 static bool               	consume_integer(struct parser_state *ps, struct intnode *integer);
 static bool               	consume_paramlist(struct parser_state *ps, struct argnode **out);
+static void               	consume_block_inner(struct parser_state *ps, struct blocknode *bnp);
 static bool               	consume_proc(struct parser_state *ps, struct procnode *proc);
 static bool               	consume_form(struct parser_state *ps, struct formnode *form);
 static bool               	consume_block(struct parser_state *ps, struct blocknode *bnp);
@@ -324,6 +325,31 @@ static bool consume_paramlist(struct parser_state *ps, struct argnode **out)
 	return consume_paren(ps, '(') && consume_paren(ps, ')');
 }
 
+static void consume_block_inner(struct parser_state *ps, struct blocknode *bnp)
+{
+	struct defnode def;
+	struct exprnode expr;
+	struct varnode var;
+
+	for (;;) {
+		if (consume_def(ps, &def)) {
+			arrput(bnp->defs, def);
+		} else if (consume_var(ps, &var)) {
+			arrput(bnp->vars, var);
+			expr = (struct exprnode) {
+				.location = var.location,
+				.type = EXPR_VAR,
+				.value.var = &arrlast(bnp->vars),
+			};
+			arrput(bnp->exprs, expr);
+		} else if (consume_exprnode(ps, &expr)) {
+			arrput(bnp->exprs, expr);
+		} else {
+			break;
+		}
+	}
+}	
+
 static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 {
 	struct parser_state before = *ps;
@@ -340,34 +366,7 @@ static bool consume_proc(struct parser_state *ps, struct procnode *proc)
 	if(!consume_paramlist(ps, &proc->args))
 		goto nope;
 
-	struct exprnode expr;
-	if(!consume_exprnode(ps, &expr)) {
-		/* require at least one expr in the body */
-		goto nope;
-	}
-	arrput(proc->block.exprs, expr);
-
-	struct defnode def;
-
-	struct varnode var;
-
-	for (;;) {
-		if (consume_def(ps, &def)) {
-			arrput(proc->block.defs, def);
-		} else if (consume_var(ps, &var)) {
-			arrput(proc->block.vars, var);
-			expr = (struct exprnode) {
-				.location = var.location,
-				.type = EXPR_VAR,
-				.value.var = &arrlast(proc->block.vars),
-			};
-			arrput(proc->block.exprs, expr);
-		} else if (consume_exprnode(ps, &expr)) {
-			arrput(proc->block.exprs, expr);
-		} else {
-			break;
-		}
-	}
+	consume_block_inner(ps, &proc->block);
 
 	if (!consume_paren(ps, ')')) {
 		struct srcloc loc = ps->lxstate.location;
@@ -413,27 +412,7 @@ static bool consume_block(struct parser_state *ps, struct blocknode *bnp)
 	if (!consume_paren(ps, '{'))
 		return false;
 
-	struct defnode def;
-	struct exprnode expr;
-	struct varnode var;
-
-	for (;;) {
-		if (consume_def(ps, &def)) {
-			arrput(bnp->defs, def);
-		} else if (consume_var(ps, &var)) {
-			arrput(bnp->vars, var);
-			expr = (struct exprnode) {
-				.location = var.location,
-				.type = EXPR_VAR,
-				.value.var = &arrlast(bnp->vars),
-			};
-			arrput(bnp->exprs, expr);
-		} else if (consume_exprnode(ps, &expr)) {
-			arrput(bnp->exprs, expr);
-		} else {
-			break;
-		}
-	}
+	consume_block_inner(ps, bnp);
 
 	if (!consume_paren(ps, '}'))
 		return false;
