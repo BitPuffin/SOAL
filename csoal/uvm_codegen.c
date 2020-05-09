@@ -340,9 +340,10 @@ static void emit_var_initialize(
 
 static void emit_block(struct genstate *s, struct blocknode *bnp)
 {
+	struct scope *scope = hmget(scope_tbl, bnp);
+
 	for (int i = 0; i < arrlen(bnp->exprs); ++i) {
 		struct exprnode *expr = &bnp->exprs[i];
-		struct scope *scope = hmget(scope_tbl, bnp);
 
 		switch (expr->type) {
 		case EXPR_FORM:
@@ -404,26 +405,8 @@ static void emit_leave(struct genstate *s)
 
 static void emit_proc(struct genstate *s, struct procnode *pnp)
 {
-	struct scope *scope = hmget(scope_tbl, &pnp->block);
 	emit_enter(s);
-	for (int i = 0; i < arrlen(pnp->block.exprs); ++i) {
-		struct	exprnode *expr = &pnp->block.exprs[i];
-
-		switch (expr->type) {
-		case EXPR_FORM:
-			emit_form_call(s, hmget(scope_tbl, &pnp->block), &expr->value.form);
-			break;
-		case EXPR_BLOCK:
-			emit_block(s, &expr->value.block);
-			break;
-		case EXPR_VAR:
-			emit_var_initialize(s, scope, expr->value.var);
-			break;
-		default:
-			errloc_abort(expr->location, "Expected form or block");
-		}
-	}
-
+	emit_block(s, &pnp->block);
 	emit_leave(s);
 	emit_ret(s);
 }
