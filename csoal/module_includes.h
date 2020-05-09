@@ -1,0 +1,15 @@
+#define ARRLEN(x) (sizeof(x) / sizeof(x[0]))
+
+#include "ints.h"
+#include "info.h"
+#include "error.c"
+#include "ast.h"
+#include "parse.c"
+#include "symbol_resolution.c"
+#include "typecheck.c"
+#include "init.c"
+#include "uvm_bytecode.h"
+#include "uvm_op_data.h"
+#include "uvm_codegen.c"
+#include "uvm.c"
+#include "uvm_disass.c"
