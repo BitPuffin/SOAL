@@ -1,14 +1,6 @@
-(pub def hey (proc void ()
-	(newline)
-	(var x 22)
-	(var xx 22)
-
-	(print-number x)
-	(newline)))
+(pub def add (proc int (a (: int) b (: int))
+	(return (+ a b))))
 
 (pub def main (proc void ()
-	(hey)
-	(var x 2)
-	(var zzz 3)
-	(print-number x)
+	(print-number (add 1 3))
 	(newline)))

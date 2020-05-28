@@ -38,6 +38,7 @@ enum expr_type {
 };
 
 struct type_annotation_node {
+	struct srcloc location;
 	struct identnode identifier;
 };
 
